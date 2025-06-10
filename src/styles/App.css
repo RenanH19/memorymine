@@ -1,0 +1,91 @@
+body {
+  background-color: #121212;
+  margin: 0;
+  padding: 0;
+  font-family: 'Courier New', monospace;
+  color: #aaaaaa;
+  overflow: hidden;
+}
+
+.App {
+  text-align: center;
+  height: 100vh;
+  background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+}
+
+.App-header {
+  padding: 20px 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.App-title {
+  font-family: 'Special Elite', 'Courier New', monospace;
+  font-size: 2.5rem;
+  letter-spacing: 3px;
+  color: #aaaaaa;
+  margin: 0;
+  animation: flicker 4s infinite alternate;
+}
+
+.App-main {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.canvas-container {
+  position: relative;
+  border-radius: 5px;
+  box-shadow: 0 0 20px rgba(100, 100, 100, 0.2);
+}
+
+.canvas-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+.canvas-border {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  right: -5px;
+  bottom: -5px;
+  border: 1px solid rgba(150, 150, 150, 0.3);
+  border-radius: 8px;
+  animation: pulseBorder 3s infinite;
+  z-index: 0;
+  backdrop-filter: blur(5px);
+  box-shadow: inset 0 0 15px rgba(150, 150, 150, 0.2);
+}
+
+.canvas-container::before {
+  content: '';
+  position: absolute;
+  top: -40px;    /* Aumentado de -20px para -40px */
+  left: -40px;   /* Aumentado de -20px para -40px */
+  right: -40px;  /* Aumentado de -20px para -40px */
+  bottom: -40px; /* Aumentado de -20px para -40px */
+  background: linear-gradient(45deg, rgba(30,30,30,0.15), rgba(60,60,60,0.25));  /* Ligeiramente mais opaco */
+  filter: blur(18px);  /* Aumentado de 10px para 18px */
+  z-index: -1;
+  animation: smoke 15s ease infinite;  /* Mais lento: 10s para 15s */
+  background-size: 300% 300%;  /* Aumentado de 200% para 300% */
+}
+
+@keyframes flicker {
+  0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
+  20%, 24%, 55% { opacity: 0.7; }
+}
+
+@keyframes pulseBorder {
+  0% { box-shadow: 0 0 8px rgba(150, 150, 150, 0.3); }
+  50% { box-shadow: 0 0 15px rgba(150, 150, 150, 0.5); }
+  100% { box-shadow: 0 0 8px rgba(150, 150, 150, 0.3); }
+}
+
+@keyframes smoke {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
