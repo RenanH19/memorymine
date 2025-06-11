@@ -1,31 +1,25 @@
-class MusicManager {
-    constructor(p5, musicLink){
-        this.p5 = p5;
-        this.musicLink = musicLink;
-        this.isPlaying = false;
-    }
+import { useEffect, useState } from "react";
+import p5, { SoundFile } from "p5";
+import 'p5/lib/addons/p5.sound';
 
-    preload(){
-        this.music = this.p5.loadSound(this.musicLink, () => {
-            console.log("Music loaded successfully");
+function MusicManager({src}) {
+    const [sound, setSound] = useState();
+
+    useEffect(() => {
+        const music = new p5.SoundFile({src}, () => {
+            music.setloop(true);
+            music.play()
+            setSound(music)
         });
-    }
+            
+        return () => {
+        if (music && music.isPlaying()) music.stop();
+        };
+    }, [src]);
 
-    play(){
-        if (!this.isPlaying){
-            this.music.loop();
-            this.isPlaying = true;
-        }
-    }
-    stop(){
-        if (this.isPlaying){
-            this.music.stop();
-            this.isPlaying = false;
-        }
-    }
-    setVolume(level){
-        if (this.music){
-            this.music.setVolume(level);
-        }
-    }
+    return null
 }
+
+export default MusicManager;
+
+    
