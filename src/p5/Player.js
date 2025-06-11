@@ -5,7 +5,7 @@ class Player{
     this.direction = this.p5.createVector(0,0);
     this.size = 32;
     this.speed = 4;
-    this.stepSize = 16;
+    this.stepSize = 8;
     this.isMoving = false;
     this.mapSize = mapSize;
   }

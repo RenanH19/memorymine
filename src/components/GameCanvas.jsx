@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sketch from 'react-p5';
 import Player from '../p5/Player';
+import MusicManager from '../p5/audio/MusicManager';
 
 function GameCanvas() {
   let player;
+  let musicManager;
+  const [musicStarted, setMusicStarted] = useState(false)
 
   const setup = (p5, parentRef) => {
-    p5.createCanvas(768, 640).parent(parentRef);
-    player = new Player(p5, 100, 100, 640);
+    p5.createCanvas(960, 640).parent(parentRef);
+    player = new Player(p5, 100, 100, 800);
+    musicManager = new MusicManager(p5, '/assets/music/moongate.flac');
+    musicManager.preload();
   };
 
   const draw = (p5) => {
@@ -19,7 +24,11 @@ function GameCanvas() {
   }
 
   return (
-    <Sketch setup={setup} draw={draw} />
+    <div>
+      <Sketch setup={setup} draw={draw} />
+      {musicManager.play()}
+    </div>
+    
   );
 
 }
