@@ -1,4 +1,3 @@
-import p5 from "p5";
 import 'p5/lib/addons/p5.sound';
 
 function MusicManager(p5, musicFile) {
@@ -13,13 +12,17 @@ function MusicManager(p5, musicFile) {
     };
 
     function playMusic(){
-        if (music && music.isPlaying()) {
-            music.loop();
-        }
+        if (!music.isPlaying()) {
+      try {
+        music.loop(); // Use loop() em vez de play() para música de fundo
+      } catch (error) {
+        console.error("Erro ao tocar música:", error);
+      }
+    }
     };
 
     function stopMusic() {
-        if (music && music.isPlaying()) {
+        if (music.isPlaying()) {
             music.stop();
         }
     };

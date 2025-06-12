@@ -4,11 +4,12 @@ import level1 from '../p5/levels/levels/level1';
 
 function GameCanvas() {
   let level;
-
+  let flag = false;
 
   const preload = (p5) => {
     level = level1(p5);
     level.loadLevel();
+    
   }
 
   const setup = (p5, parentRef) => {
@@ -17,7 +18,19 @@ function GameCanvas() {
 
   const draw = (p5) => {
     p5.background(200);
-    level.runLevel();
+    if (p5.mouseIsPressed) {
+      try {
+        if (level) {
+          flag = true;
+        }
+      } catch (error) {
+        console.error("Erro ao executar o nível:", error);
+      }
+    }
+    if (flag) {
+      level.runLevel();
+    }
+    
   }
 
   
