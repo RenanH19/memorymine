@@ -1,43 +1,30 @@
-import React, { useState } from 'react';
 import Sketch from 'react-p5';
-import Player from '../p5/Player';
 import 'p5/lib/addons/p5.sound';
-
+import level1 from '../p5/levels/levels/level1';
 
 function GameCanvas() {
-  
-  let player;
-  let music;
-  
+  let level;
+
+
   const preload = (p5) => {
-    music = p5.loadSound(('/assets/music/moongate.mp3'),() =>{
-      console.log('som carregou')
-    })
+    level = level1(p5);
+    level.loadLevel();
   }
 
   const setup = (p5, parentRef) => {
     p5.createCanvas(960, 640).parent(parentRef);
-    player = new Player(p5, 100, 100, 800);
-    
-    
   }
 
   const draw = (p5) => {
     p5.background(200);
-    
-    if(p5.mouseIsPressed){
-      music.play();
-    }
-
-    player.display();
-    player.update();
-
+    level.runLevel();
   }
+
+  
 
   return (
     <div>
       <Sketch preload={preload} setup={setup} draw={draw}  />
-
     </div>
     
   );
