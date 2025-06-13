@@ -5,7 +5,7 @@ import level1Map from "../../maps/maps/level1Map";
 
 function level1(p5) {
   let musicFile = '/assets/music/moongate.mp3'
-  let player = new Player(p5, 100, 100, 800);
+  let player = new Player(p5, 0, 0, 800);
   let { loadMusic, playMusic, stopMusic } = MusicManager(p5, musicFile);
   let { loadMap, buildMap } = mapLoader(p5, level1Map);
 
