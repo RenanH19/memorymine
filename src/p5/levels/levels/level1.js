@@ -10,15 +10,16 @@ function level1(p5) {
   let { loadMap, buildMap } = mapLoader(p5, level1Map);
 
   function loadLevel() {
+    player.loadPlayer();
     loadMap();
     loadMusic();
   }
 
   function runLevel(){
 
+    buildMap();
     player.display();
     player.update();
-    buildMap();
     playMusic();
   }
 

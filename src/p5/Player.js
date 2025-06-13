@@ -8,6 +8,15 @@ class Player{
     this.stepSize = 8;
     this.isMoving = false;
     this.mapSize = mapSize;
+    this.frontPlayer = null;
+  }
+
+  loadPlayer(){
+    this.frontPlayer = this.p5.loadImage('/assets/sprites/player/run.png', () => {
+        console.log('Player sprite loaded sucessfully');
+        }, (err) => {
+        console.error('Error loading player sprite:', err);
+        })
   }
 
   update(){
@@ -51,7 +60,7 @@ class Player{
 
   display(){
     this.p5.fill(255,0,0);
-    this.p5.rect(this.position.x, this.position.y, this.size, this.size);
+    this.p5.image(this.frontPlayer, this.position.x, this.position.y, this.size, this.size);
   }
 }
 

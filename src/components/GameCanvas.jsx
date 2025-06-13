@@ -25,6 +25,7 @@ function GameCanvas() {
         }
       } catch (error) {
         console.error("Erro ao executar o nível:", error);
+        
       }
     }
     if (flag) {
