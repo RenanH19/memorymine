@@ -5,8 +5,11 @@ function SpriteLoader(p5, spriteSheetPath, height, width, frameCount) {
   let y;
   let x;
   function loadSprites(){
-    spriteSheet = p5.loadImage(spriteSheetPath);
-    
+    spriteSheet = p5.loadImage(spriteSheetPath, () => {
+      console.log('Sprite sheet loaded successfully');
+    }, (err) => {
+      console.error('Error loading sprite sheet:', err);
+    });
     
   };
 

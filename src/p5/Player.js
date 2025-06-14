@@ -12,15 +12,22 @@ class Player{
     this.mapSize = mapSize;
     this.frontPlayer = null;
 
-    this.imageSprites = 18;
-    this.spriteLoader = SpriteLoader(p5, '/assets/sprites/player/runSprites.png', 768, 192, this.imageSprites);
+    this.imageSprites = 36;
+    this.spriteLoader = SpriteLoader(this.p5, '/assets/sprites/player/runSprites.png', 768, 192, this.imageSprites);
     this.spriteSelected = 0;
-    this.animationDelay = 3;
+    this.animationDelay = 4;
     this.animationFrame = 0;
+    this.playerSprites = null;
   }
 
   loadPlayer(){
     this.spriteLoader.loadSprites();
+  }
+
+  getPlayerSprites(){
+    if (this.playerSprites === null){
+      this.playerSprites = this.spriteLoader.getSprites();
+    }
   }
 
   update(){
@@ -99,11 +106,15 @@ class Player{
   }
 
   display(){
-    
+   
     this.p5.fill(255,0,0);
-    this.p5.image(this.spriteLoader.getSprites()[this.spriteSelected], this.position.x, this.position.y, this.size, this.size);
+    this.p5.image(this.playerSprites[this.spriteSelected], this.position.x, this.position.y, this.size, this.size);
     
     
+  }
+
+  positionPlayer(){
+    return this.position;
   }
 }
 

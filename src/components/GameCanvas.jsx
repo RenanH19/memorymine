@@ -14,6 +14,7 @@ function GameCanvas() {
 
   const setup = (p5, parentRef) => {
     p5.createCanvas(960, 640).parent(parentRef);
+    p5.frameRate(60);
   }
 
   const draw = (p5) => {

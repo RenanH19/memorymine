@@ -12,7 +12,7 @@ function mapLoader(p5, map) {
 
   function buildMap() {
     for (let i=0; i < 20; i++){
-      for(let j=0; j < 20; j++){
+      for(let j=0; j < 25; j++){
         if(map[i][j] === 1){
           p5.image(tile1, j * 32, i * 32, 32, 32);
         }
