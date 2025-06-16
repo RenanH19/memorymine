@@ -1,19 +1,26 @@
 import Sketch from 'react-p5';
 import 'p5/lib/addons/p5.sound';
 import level1 from '../p5/levels/levels/level1';
+import Player from '../p5/Player';
+import worldMapClass from '../p5/maps/worldMapClass';
 
 function GameCanvas() {
   let level;
   let flag = false;
+  let player;
+  let worldMap;
 
   const preload = (p5) => {
-    level = level1(p5);
-    level.loadLevel();
+    player = new Player(p5, 100, 100, 2000);
+    worldMap = new worldMapClass(p5, player);
+    worldMap.loadWorldMap();
+    // level = level1(p5);
+    // level.loadLevel();
     
   }
 
   const setup = (p5, parentRef) => {
-    p5.createCanvas(960, 640).parent(parentRef);
+    p5.createCanvas(800, 640).parent(parentRef);
     p5.frameRate(60);
   }
 
@@ -21,19 +28,32 @@ function GameCanvas() {
     p5.background(200);
     if (p5.mouseIsPressed) {
       try {
-        if (level) {
+        if (worldMap) {
           flag = true;
         }
       } catch (error) {
         console.error("Erro ao executar o nível:", error);
-        
-      }
-    }
+      }}
     if (flag) {
-      level.runLevel();
+      worldMap.runWorld();
     }
     
   }
+  //   if (p5.mouseIsPressed) {
+  //     try {
+  //       if (level) {
+  //         flag = true;
+  //       }
+  //     } catch (error) {
+  //       console.error("Erro ao executar o nível:", error);
+        
+  //     }
+  //   }
+  //   if (flag) {
+  //     level.runLevel();
+  //   }
+    
+  // }
 
   
 

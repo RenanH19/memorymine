@@ -1,0 +1,39 @@
+class worldMap{
+  constructor(p5, player){
+    this.p5 = p5;
+    this.player = player;
+    this.worldMapImage = '/assets/mapateste.png'; // Caminho para a imagem do mapa do mundo
+    this.worldwidth = 2000;
+    this.worldHeight = 2000;
+    this.cameraX = 0;
+    this.cameraY = 0;
+ 
+  }
+  
+  loadWorldMap(){
+    this.worldMapImage = this.p5.loadImage(this.worldMapImage, () => {
+      console.log('World map loaded successfully');
+    }, (err) => {
+      console.error('Error loading world map:', err);
+    });
+    this.player.loadPlayer(); // Carrega o jogador
+  }
+
+  runWorld(){
+    
+  
+    this.cameraX = this.p5.constrain(this.player.position.x - this.p5.width/2, 0, this.worldwidth - this.p5.width) // Assim, mantem a camera com o player no meio da tela, mas limitando ela ao 0 < x < worldwidth - width
+    this.cameraY = this.p5.constrain(this.player.position.y - this.p5.height/2, 0, this.worldHeight - this.p5.height)
+
+    this.p5.translate(-this.cameraX, -this.cameraY) // desloca o eixo 0 das coordenadas para carregando o vem depois da imagem
+    this.p5.image(this.worldMapImage, 0, 0, this.worldwidth, this.worldHeight); // Desenha o mapa do mundo
+
+    
+    this.player.getPlayerSprites();
+    this.player.update();
+    this.player.display();
+  }
+  
+}
+
+export default worldMap;
