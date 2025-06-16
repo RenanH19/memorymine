@@ -4,10 +4,9 @@ class Player{
   constructor(p5, x, y, mapSize){
     this.p5 = p5;
     this.position = this.p5.createVector(x,y);
-    this.direction = this.p5.createVector(0,0);
-    this.size = 32;
-    this.speed = 2;
-    this.stepSize = 4;
+    this.direction = this.p5.createVector(x,y);
+    this.size = 36;
+    this.stepSize = 3;
     this.isMoving = false;
     this.mapSize = mapSize;
     this.frontPlayer = null;
@@ -15,9 +14,9 @@ class Player{
     this.imageSprites = 36;
     this.spriteLoader = SpriteLoader(this.p5, '/assets/sprites/player/runSprites.png', 768, 192, this.imageSprites);
     this.spriteSelected = 0;
-    this.animationDelay = 4;
-    this.animationFrame = 0;
     this.playerSprites = null;
+    this.frameCount = 0;
+    this.frameDelay = 4;
   }
 
   loadPlayer(){
@@ -32,22 +31,20 @@ class Player{
 
   update(){
 
-    if(this.isMoving){
-      let dx = this.direction.x - this.position.x;
-      let dy = this.direction.y - this.position.y;
-
-      if (Math.abs(dx) < this.speed && Math.abs(dy) < this.speed){
-        this.position.x = this.direction.x;
-        this.position.y = this.direction.y;
-        this.isMoving = false;
-      } else {
-        if (dx !== 0){
-          this.position.x += Math.sign(dx) * this.speed; // sign dá a direção do movimento, retorna -1, +1 ou 0
-        }
-        if (dy !== 0){
-          this.position.y += Math.sign(dy) * this.speed;
-        }
+    let AnimationDelay = () => {
+      if (this.frameCount > this.frameDelay){
+        this.frameCount = 0;
+        this.spriteSelected++;
       }
+      this.frameCount++;
+    }
+
+    if(this.isMoving){
+      this.position.x = this.direction.x;
+      this.position.y = this.direction.y;
+      this.isMoving = false;
+
+      
     } else {
 
       if (this.p5.keyIsDown(this.p5.LEFT_ARROW)){
@@ -55,12 +52,9 @@ class Player{
         this.isMoving = true;
         if(this.spriteSelected < 9 || this.spriteSelected > 16){ //verifica se o sprite corresponde ao sprite do movimento esquerdo, caso nao for, ele troca para o sprite correspondente
           this.spriteSelected = 9;
-        } 
-        if (this.animationFrame >= this.animationDelay){
-          this.animationFrame = 0;
-          this.spriteSelected++;
         }
-        this.animationFrame++;
+        AnimationDelay();
+        
       }
       else if (this.p5.keyIsDown(this.p5.RIGHT_ARROW)){
         this.direction.x = Math.min(this.mapSize - this.size, this.position.x + this.stepSize);
@@ -69,11 +63,8 @@ class Player{
         if(this.spriteSelected > 7){ //verifica se o sprite corresponde ao sprite do movimento direito
           this.spriteSelected = 0;
         } 
-        if (this.animationFrame >= this.animationDelay){
-          this.animationFrame = 0;
-          this.spriteSelected++;
-        }
-        this.animationFrame++;
+        AnimationDelay();
+    
       }
       else if (this.p5.keyIsDown(this.p5.UP_ARROW)){
         this.direction.y = Math.max(0, this.position.y - this.stepSize);
@@ -82,11 +73,8 @@ class Player{
         if(this.spriteSelected < 18  || this.spriteSelected > 25){ //verifica se o sprite corresponde ao sprite do movimento para frente
           this.spriteSelected = 18;
         } 
-        if (this.animationFrame >= this.animationDelay){
-          this.animationFrame = 0;
-          this.spriteSelected++;
-        }
-        this.animationFrame++;
+        AnimationDelay();
+
       }
       else if (this.p5.keyIsDown(this.p5.DOWN_ARROW)){
         this.direction.y = Math.min(this.mapSize - this.size, this.position.y + this.stepSize);
@@ -96,11 +84,8 @@ class Player{
         if(this.spriteSelected < 27  || this.spriteSelected > 34){ //verifica se o sprite corresponde ao sprite do movimento para frente
           this.spriteSelected = 27;
         } 
-        if (this.animationFrame >= this.animationDelay){
-          this.animationFrame = 0;
-          this.spriteSelected++;
-        }
-        this.animationFrame++;
+        AnimationDelay();
+
       }
     }
   }
