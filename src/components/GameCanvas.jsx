@@ -3,16 +3,19 @@ import 'p5/lib/addons/p5.sound';
 import level1 from '../p5/levels/levels/level1';
 import Player from '../p5/Player';
 import worldMapClass from '../p5/maps/worldMapClass';
+import mist from '../p5/maps/mist';
 
 function GameCanvas() {
   let level;
   let flag = false;
   let player;
   let worldMap;
+  let mistInstance;
 
   const preload = (p5) => {
     player = new Player(p5, 100, 100, 2000);
-    worldMap = new worldMapClass(p5, player);
+    mistInstance = new mist(p5, 2000, 2000);
+    worldMap = new worldMapClass(p5, player, mistInstance);
     worldMap.loadWorldMap();
     // level = level1(p5);
     // level.loadLevel();

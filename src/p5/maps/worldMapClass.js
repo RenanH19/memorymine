@@ -1,5 +1,5 @@
 class worldMap{
-  constructor(p5, player){
+  constructor(p5, player, mist){
     this.p5 = p5;
     this.player = player;
     this.worldMapImage = '/assets/mapateste.png'; // Caminho para a imagem do mapa do mundo
@@ -7,9 +7,9 @@ class worldMap{
     this.worldHeight = 2000;
     this.cameraX = 0;
     this.cameraY = 0;
- 
+    this.mist = mist; // Inicializa a névoa
   }
-  
+
   loadWorldMap(){
     this.worldMapImage = this.p5.loadImage(this.worldMapImage, () => {
       console.log('World map loaded successfully');
@@ -17,6 +17,10 @@ class worldMap{
       console.error('Error loading world map:', err);
     });
     this.player.loadPlayer(); // Carrega o jogador
+
+    if (this.mist) {
+      this.mist.loadMist(); // Carrega a névoa, se estiver definida
+    }
   }
 
   runWorld(){
@@ -32,6 +36,13 @@ class worldMap{
     this.player.getPlayerSprites();
     this.player.update();
     this.player.display();
+
+    if (this.mist) {
+      this.mist.buildMist(); // Constrói a névoa, se estiver definida
+      this.mist.drawMist();
+      this.mist.lightEffect(this.player.position); // Aplica o efeito de luz, se estiver definida
+    }
+    
   }
   
 }
