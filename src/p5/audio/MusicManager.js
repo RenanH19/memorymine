@@ -35,11 +35,20 @@ function MusicManager(p5, musicFile) {
         }
     }
 
+    function fadeOut(duration) {
+        if (music && music.isPlaying()) {
+            music.fade(0, duration);
+        } else {
+            console.warn("Music not playing. Cannot fade out.");
+        }
+    }
+
     return {
         loadMusic,
         playMusic,
         stopMusic,
-        setVolume
+        setVolume,
+        fadeOut
     };
     
 }

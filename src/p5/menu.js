@@ -167,12 +167,14 @@ class Menu {
 
   checkButtonClick() {
     if (this.p5.mouseIsPressed && this.isMouseOverButton()) {
+      // Fade out gradual da música do menu
+      this.music.fadeOut(1.5); // 1.5 segundos para fade out
       this.showMenu = false;
-      this.music.stopMusic(); // Para a música do menu
       return true; // Indica que o jogo deve começar
     }
     return false;
   }
+  
 
   hideMenu() {
     this.showMenu = false;

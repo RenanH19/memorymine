@@ -18,7 +18,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1 className="App-title">MemoryMine</h1>
+        <h1 className="App-title">Megálos</h1>
       </header>
       <main className="App-main">
         <div className="canvas-container">
