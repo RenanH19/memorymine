@@ -20,7 +20,7 @@ class mist {
 
   buildMist() {
     // Gera névoa em resolução menor
-  let mistSize = 300; // Em vez de 2000
+  let mistSize = 300;
   
   if (!this.mistTexture) {
     this.mistTexture = this.p5.createGraphics(mistSize, mistSize);
@@ -37,8 +37,8 @@ class mist {
       let index = (y * mistSize + x) * 4;
       let pixelColor = this.p5.noise(xoff, yoff + this.t) * 255;
       
-      this.mistTexture.pixels[index] = pixelColor * 0.25;
-      this.mistTexture.pixels[index + 1] = pixelColor * 0.25;
+      this.mistTexture.pixels[index] = pixelColor * 0.2;
+      this.mistTexture.pixels[index + 1] = pixelColor * 0.2;
       this.mistTexture.pixels[index + 2] = pixelColor * 0.2;
       this.mistTexture.pixels[index + 3] = 180;
       
@@ -48,14 +48,15 @@ class mist {
   }
   
   this.mistTexture.updatePixels();
-  this.t += 0.003;
+  this.t += 0.02;
   }
 
   drawMist() {
   if (this.mistTexture) {
     // Escala de 200x200 para o tamanho real
     this.p5.push()
-    this.p5.image(this.mistTexture, 0, 0, this.width + 6000, this.height + 6000);
+    this.p5.tint(200, 200, 200, 200)
+    this.p5.image(this.mistTexture, 0, 0, this.width + 8000, this.height + 4000);
     this.p5.pop()
     }
   }
@@ -65,7 +66,7 @@ class mist {
     this.p5.push();
 
     this.shadow.clear();
-    this.shadow.fill(0, 248); // Leve sombra no mapa
+    this.shadow.fill(10, 240); // Leve sombra no mapa
     this.shadow.noStroke();
     this.shadow.rect(0, 0, this.width, this.height);
     this.p5.image(this.shadow, 0, 0);
@@ -75,22 +76,22 @@ class mist {
   
   lightEffect(position) {
     this.p5.push();
-    this.p5.tint(200, 100, 25, 200); // controla a opacidade
+    this.p5.tint(100, 100, 100, 200); // controla a opacidade
     this.light.clear();
     this.light.erase();
-    this.light.fill(255, 150, 50, 120); // cor da luz
+    this.light.fill(200, 200, 200, 150); // cor da luz
     this.light.circle(position.x + 16, position.y + 16, this.radius * 2);
     this.light.noErase();
     this.p5.image(this.light, 0, 0);
 
-    this.t += 0.005;
+    this.t += 0.01;
 
     this.p5.pop();
 
     this.p5.push();
 
     this.shadow.clear();
-    this.shadow.fill(0, 240); // Leve sombra no mapa
+    this.shadow.fill(0, 230); // Leve sombra no mapa
     this.shadow.noStroke();
     this.shadow.rect(0, 0, this.width, this.height);
 

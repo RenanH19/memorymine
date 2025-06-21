@@ -1,13 +1,16 @@
+import MusicManager from "../audio/MusicManager";
+
 class worldMap{
   constructor(p5, player, mist){
     this.p5 = p5;
     this.player = player;
-    this.worldMapImage = '/assets/mapateste.png'; // Caminho para a imagem do mapa do mundo
-    this.worldwidth = 2000;
-    this.worldHeight = 2000;
+    this.worldMapImage = '/assets/worldMap.png'; // Caminho para a imagem do mapa do mundo
+    this.worldwidth = 1024;
+    this.worldHeight = 1024;
     this.cameraX = 0;
     this.cameraY = 0;
     this.mist = mist; // Inicializa a névoa
+    this.music = MusicManager(p5, '/assets/music/worldMap.mp3')
   }
 
   loadWorldMap(){
@@ -21,6 +24,9 @@ class worldMap{
     if (this.mist) {
       this.mist.loadMist(); // Carrega a névoa, se estiver definida
     }
+    this.music.loadMusic();
+    
+
   }
 
   runWorld(){
@@ -36,6 +42,8 @@ class worldMap{
     this.player.getPlayerSprites();
     this.player.update();
     this.player.display();
+    this.music.playMusic();
+    this.music.setVolume(0.1);
 
     if (this.mist) {
       this.mist.buildMist(); // Constrói a névoa, se estiver definida

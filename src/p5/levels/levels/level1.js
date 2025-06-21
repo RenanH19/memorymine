@@ -10,13 +10,13 @@ function level1(p5) {
   let player = new Player(p5, 0, 0, 800);
   let { loadMusic, playMusic, stopMusic } = MusicManager(p5, musicFile);
   let { loadMap, buildMap } = mapLoader(p5, level1Map);
-  let { loadMist, buildMist, shadowEffect } = mist(p5);
+  let mistInstance = new mist(p5, 800, 640);
 
   function loadLevel() {
     player.loadPlayer();
     loadMap();
     loadMusic();
-    loadMist();
+    mistInstance.loadMist();
   }
 
   function runLevel(){
@@ -26,7 +26,7 @@ function level1(p5) {
     player.getPlayerSprites();
     player.display();
     player.update();
-    buildMist();
+    mistInstance.buildMist();
     playMusic();
     
   }

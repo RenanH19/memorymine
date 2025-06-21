@@ -27,10 +27,19 @@ function MusicManager(p5, musicFile) {
         }
     };
 
+    function setVolume(volume) {
+        if (music) {
+            music.setVolume(volume);
+        } else {
+            console.warn("Music not loaded yet. Cannot set volume.");
+        }
+    }
+
     return {
         loadMusic,
         playMusic,
-        stopMusic
+        stopMusic,
+        setVolume
     };
     
 }
