@@ -9,11 +9,15 @@ function level1(p5, sharedPlayer) {
   
   // Variáveis para o mapa
   let levelImage = null;
+  let levelImageLight = null; // Mapa claro (se necessário)
   let labFront = null; // Opcional: layer de objetos em cima
   let levelWidth = 800;
   let levelHeight = 640;
   let cameraX = 0;
   let cameraY = 0;
+  let darkness = 255;
+  let darknessLight = 0;
+  let isSystemActive = false;
   
   // Variáveis para fade in
   let fadeInAlpha = 255;
@@ -28,20 +32,35 @@ function level1(p5, sharedPlayer) {
   let zKeyPressed = false;
   let shouldExit = false;
   let textBoxImage = null;
+  let itemBoxImage = null;
 
   // Variáveis para item coletável
-  let itemArea = { x: 400, y: 300, radius: 30 }; // Posição do item no mapa
+  let itemArea = { x: 400, y: 500, radius: 30 }; // Posição do item no mapa
   let itemImage = null;
   let itemSound = null;
   let itemCollected = false;
   let xKeyPressedForItem = false;
 
+  // Variáveis para o sistema de ativação
+  let systemArea = { x: 400, y: 435, radius: 40 }; // Área do sistema
+  let xKeyPressedForSystem = false;
+  let showSystemMessage = false;
+  let showKeyMessage = false;
+  let systemMessageStep = 0; // 0: primeira mensagem, 1: segunda mensagem, 2: sistema ativo
+
   function loadLevel() {
-    // Carrega a imagem do level1
+    // Carrega a imagem do level1 (escuro)
     levelImage = p5.loadImage('/assets/level/LabDark.png', () => {
-      console.log('Level1 map loaded successfully');
+      console.log('Level1 dark map loaded successfully');
     }, (error) => {
-      console.error('Failed to load level1 map:', error);
+      console.error('Failed to load level1 dark map:', error);
+    });
+
+    // Carrega a imagem do level1 (claro)
+    levelImageLight = p5.loadImage('/assets/level/LabLight.png', () => {
+      console.log('Level1 light map loaded successfully');
+    }, (error) => {
+      console.error('Failed to load level1 light map:', error);
     });
 
     // Opcional: layer de árvores/objetos por cima
@@ -56,6 +75,13 @@ function level1(p5, sharedPlayer) {
       console.log('TextBox image loaded successfully');
     }, (error) => {
       console.error('Failed to load textBox image:', error);
+    });
+
+     // Carrega a imagem do itemBox
+    itemBoxImage = p5.loadImage('/assets/sprites/player/itemBox.png', () => {
+      console.log('ItemBox image loaded successfully');
+    }, (error) => {
+      console.error('Failed to load itemBox image:', error);
     });
 
     // Carrega a imagem do item
@@ -83,6 +109,9 @@ function level1(p5, sharedPlayer) {
     shouldExit = false;
     zKeyPressed = false;
     xKeyPressedForItem = false;
+    xKeyPressedForSystem = false;
+    showSystemMessage = false;
+    showKeyMessage = false;
   }
 
   // Método para definir se o item foi coletado (usado na persistência)
@@ -93,6 +122,93 @@ function level1(p5, sharedPlayer) {
   // Getter para verificar se o item foi coletado
   function isItemCollected() {
     return itemCollected;
+  }
+
+  // Método para definir se o sistema está ativo (usado na persistência)
+  function setSystemActive(active) {
+    isSystemActive = active;
+    if (active) {
+      darknessLight = 0; // Se o sistema já está ativo, clarear imediatamente
+      systemMessageStep = 3; // Marca como completamente ativo
+      if (mistInstance && mistInstance.updateDarkness) {
+        mistInstance.updateDarkness(darknessLight);
+      }
+    }
+  }
+
+  function getSystemActive() {
+    return isSystemActive;
+  }
+
+  function checkSystemInteraction() {
+    const distance = p5.dist(player.position.x, player.position.y, systemArea.x, systemArea.y);
+    const isInSystemArea = distance < systemArea.radius;
+
+    if (isInSystemArea && !isSystemActive) {
+      if (p5.keyIsDown(88)) { // Tecla X
+        if (!xKeyPressedForSystem) {
+          xKeyPressedForSystem = true;
+          
+          if (systemMessageStep === 0) {
+            // Primeira mensagem: "Sistema fora de operação"
+            showSystemMessage = true;
+            showKeyMessage = false;
+            systemMessageStep = 1;
+            console.log('Primeira mensagem mostrada');
+          } else if (systemMessageStep === 1) {
+            // Segunda mensagem: verifica se tem a chave
+            showSystemMessage = false;
+
+            // Verifica se tem chave no inventário
+            const hasKey = player.hasItem('key')
+            
+            if (hasKey) {
+              // Tem a chave, ativa o sistema
+              isSystemActive = true;
+              systemMessageStep = 3;
+              showKeyMessage = false;
+              
+              console.log('Sistema ativado! Laboratório iluminando...');
+              
+              // Inicia a transição suave de escuridão
+              darknessLight = 255; // Começa escuro
+            } else {
+              // Não tem a chave
+              showKeyMessage = true;
+              systemMessageStep = 2;
+            }
+          } else if (systemMessageStep === 2) {
+            // Reset para voltar ao início se não tem chave
+            showKeyMessage = false;
+            systemMessageStep = 0;
+          }
+        }
+      } else {
+        xKeyPressedForSystem = false;
+      }
+    } else if (!isInSystemArea) {
+      // Fora da área, esconde mensagens mas mantém o progresso
+      showSystemMessage = false;
+      showKeyMessage = false;
+    }
+
+    return isInSystemArea;
+  }
+
+   function updateSystemTransition() {
+    if (isSystemActive && darknessLight > 0) {
+      // Transição suave para clarear
+      darknessLight = p5.lerp(darknessLight, 0, 0.02);
+      
+      if (darknessLight < 1) {
+        darknessLight = 0;
+      }
+      
+      // Atualiza a escuridão na névoa
+      if (mistInstance && mistInstance.updateDarkness) {
+        mistInstance.updateDarkness(darknessLight);
+      }
+    }
   }
 
   function checkItemCollection() {
@@ -153,6 +269,68 @@ function level1(p5, sharedPlayer) {
     p5.pop();
   }
 
+  function drawSystemIndicator() {
+    if (!showSystemMessage && !showKeyMessage) return;
+
+    p5.push();
+    p5.resetMatrix();
+    
+    const textBoxWidth = 600;
+    const textBoxHeight = 70;
+    const textBoxX = (p5.width - textBoxWidth) / 2;
+    const textBoxY = p5.height - textBoxHeight - 20;
+    
+    if (textBoxImage) {
+      p5.image(textBoxImage, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
+    } else {
+      p5.fill(0, 0, 0, 150);
+      p5.stroke(200, 200, 200);
+      p5.strokeWeight(2);
+      p5.rect(textBoxX, textBoxY, textBoxWidth, textBoxHeight, 10);
+    }
+    
+    p5.fill(255, 255, 255);
+    p5.noStroke();
+    p5.textAlign(p5.CENTER, p5.CENTER);
+    p5.textSize(18);
+    p5.textStyle(p5.BOLD);
+    
+    if (showSystemMessage) {
+      p5.text("Sistema fora de operação", p5.width / 2, textBoxY + textBoxHeight / 2);
+    } else if (showKeyMessage) {
+      p5.text("Necessário chaves", p5.width / 2, textBoxY + textBoxHeight / 2);
+    }
+    
+    p5.pop();
+  }
+
+  function drawSystemArea() {
+    if (isSystemActive) return; // Não desenha se já estiver ativo
+
+    p5.push();
+    
+    // Efeito de pulsação para indicar área interativa
+    const pulseScale = 1 + Math.sin(p5.millis() * 0.003) * 0.1;
+    
+    p5.translate(systemArea.x, systemArea.y);
+    p5.scale(pulseScale);
+    
+    // Círculo indicativo
+    p5.fill(100, 100, 255, 80); // Azul translúcido
+    p5.stroke(100, 100, 255, 150);
+    p5.strokeWeight(2);
+    p5.ellipse(0, 0, systemArea.radius * 2, systemArea.radius * 2);
+    
+    // Ícone do sistema (opcional)
+    p5.fill(255, 255, 255, 200);
+    p5.noStroke();
+    p5.textAlign(p5.CENTER, p5.CENTER);
+    p5.textSize(16);
+    p5.text("⚡", 0, 0);
+    
+    p5.pop();
+  }
+
   function drawItemIndicator() {
     p5.push();
     p5.resetMatrix();
@@ -177,6 +355,33 @@ function level1(p5, sharedPlayer) {
     p5.textSize(18);
     p5.textStyle(p5.BOLD);
     p5.text("Pressione 'X' para coletar o item", p5.width / 2, textBoxY + textBoxHeight / 2);
+    
+    p5.pop();
+  }
+
+  // Nova função para desenhar o itemBox no canto da tela
+  function drawItemBoxIndicator(isNearSystem) {
+    if (!itemBoxImage || !isNearSystem || isSystemActive) return;
+
+    p5.push();
+    p5.resetMatrix();
+    
+    // Posiciona no canto superior direito
+    const itemBoxX = p5.width - 80;
+    const itemBoxY = 20;
+    const itemBoxSize = 60;
+    
+    // Desenha o itemBox
+    p5.image(itemBoxImage, itemBoxX, itemBoxY, itemBoxSize, itemBoxSize);
+    
+    // Adiciona texto "X"
+    p5.fill(255, 255, 255);
+    p5.stroke(0, 0, 0);
+    p5.strokeWeight(2);
+    p5.textAlign(p5.CENTER, p5.CENTER);
+    p5.textSize(20);
+    p5.textStyle(p5.BOLD);
+    p5.text("X", itemBoxX + itemBoxSize / 2, itemBoxY + itemBoxSize / 2);
     
     p5.pop();
   }
@@ -241,12 +446,31 @@ function level1(p5, sharedPlayer) {
     // Verifica coleta do item
     const isNearItem = checkItemCollection();
 
+    // Verifica interação com o sistema
+    const isNearSystem = checkSystemInteraction();
+
+    // Atualiza transição do sistema
+    updateSystemTransition();
     // Controle da câmera
     cameraX = p5.constrain(player.position.x - p5.width/2, 0, Math.max(0, levelWidth - p5.width));
     cameraY = p5.constrain(player.position.y - p5.height/2, 0, Math.max(0, levelHeight - p5.height));
 
     // Aplica transformação da câmera
     p5.translate(-cameraX, -cameraY);
+
+    // Desenha o mapa de fundo (escolhe entre escuro e claro)
+    const currentLevelImage = isSystemActive ? levelImageLight : levelImage;
+    if (currentLevelImage) {
+      p5.image(currentLevelImage, 0, 0, levelWidth, levelHeight);
+    } else {
+      p5.background(40, 40, 60);
+    }
+
+    // Desenha a área do sistema (se não estiver ativo)
+    drawSystemArea();
+
+    // Desenha o item (antes do player)
+    drawItem();
 
     // Desenha o mapa de fundo
     if (levelImage) {
@@ -289,6 +513,8 @@ function level1(p5, sharedPlayer) {
     // Desenha indicadores
     if (exitData.isInExitArea) {
       drawExitIndicator();
+    } else if (isNearSystem) {
+      drawSystemIndicator();
     } else if (isNearItem && !itemCollected) {
       drawItemIndicator();
     }
@@ -342,6 +568,15 @@ function level1(p5, sharedPlayer) {
     return { width: levelWidth, height: levelHeight };
   }
 
+  // Nova função para definir o progresso do sistema (para persistência)
+  function setSystemProgress(step) {
+    systemMessageStep = step;
+  }
+
+  function getSystemProgress() {
+    return systemMessageStep;
+  }
+
   return {
     loadLevel,
     runLevel,
@@ -349,6 +584,10 @@ function level1(p5, sharedPlayer) {
     startFadeIn,
     setItemCollected,
     isItemCollected,
+    setSystemActive,
+    getSystemActive,
+    setSystemProgress,
+    getSystemProgress,
     isFadeComplete,
     setFadeSpeed,
     setMusicFadeSpeed,
