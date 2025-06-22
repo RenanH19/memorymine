@@ -2,9 +2,9 @@ import Player from "../../Player";
 import MusicManager from "../../audio/MusicManager";
 import mist from "../../maps/mist";
 
-function level1(p5) {
-  let player = new Player(p5, 100, 100, 800, '/assets/noColision.png'); // Posição inicial do player
-  let musicFile = '/assets/music/deepSound.mp3';
+function level1(p5, sharedPlayer) {
+  let player = sharedPlayer; // USA O PLAYER COMPARTILHADO
+  let musicFile = '/assets/music/moongate.mp3';
   let music = MusicManager(p5, musicFile);
   let mistInstance = new mist(p5, 800, 640);
   
@@ -73,7 +73,13 @@ function level1(p5) {
       console.error('Failed to load item sound:', error);
     });
 
-    player.loadPlayer();
+    levelImage = p5.loadImage('/assets/maps/level1.png', () => {
+      console.log('Level1 map loaded successfully');
+    }, (error) => {
+      console.error('Failed to load level1 map:', error);
+    });
+
+    
     music.loadMusic();
     mistInstance.loadMist();
   }

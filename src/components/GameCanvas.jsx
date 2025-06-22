@@ -13,7 +13,7 @@ function GameCanvas() {
   let flagWorld = false;
   let flagLevel1 = false;
   let flagLevel2 = false;
-  let player;
+  let player; // PLAYER ÚNICO COMPARTILHADO
   let worldMap;
   let mistInstance;
   let menu;
@@ -50,7 +50,7 @@ function GameCanvas() {
   // Armazena posição do player no mundo
   let worldPlayerPosition = { x: 0, y: 0 };
   
-  // Armazena se a chave foi coletada e item do level1
+  // Estados persistentes dos levels
   let level2KeyCollected = false;
   let level1ItemCollected = false;
   
@@ -72,13 +72,17 @@ function GameCanvas() {
       console.error('Failed to load weird sound:', error);
     });
     
+    // CRIA PLAYER ÚNICO COM MAPA DE COLISÃO INICIAL DO MUNDO
     player = new Player(p5, 300, 400, 1024, '/assets/worldMapColision.png');
+    
     mistInstance = new mist(p5, 1024, 1024, darkness);
     worldMap = new worldMapClass(p5, player, mistInstance);
     worldMap.loadWorldMap();
-    level = level1(p5);
+    
+    // PASSA O MESMO PLAYER PARA AMBOS OS LEVELS
+    level = level1(p5, player);
     level.loadLevel();
-    level2Instance = level2(p5);
+    level2Instance = level2(p5, player);
     level2Instance.loadLevel();
     
     // INICIA O TIMER DO SOM
@@ -90,7 +94,7 @@ function GameCanvas() {
     // Tempo aleatório entre 25-35 segundos (em milissegundos)
     const randomDelay = Math.random() * (35000 - 25000) + 15000;
     nextSoundTime = Date.now() + randomDelay;
-    
+    console.log(`Próximo som em ${randomDelay / 1000} segundos`);
   }
 
   // FUNÇÃO PARA CONTROLAR O EFEITO DE CLARÃO
@@ -228,18 +232,20 @@ function GameCanvas() {
       if (levelResult && levelResult.exit) {
         // SALVA o estado do item antes de sair
         level1ItemCollected = level.isItemCollected();
-        console.log('Item do Level1 salvo:', level1ItemCollected);
+        console.log('Saindo do Level 1 - Item salvo:', level1ItemCollected);
         
         flagLevel1 = false;
         flagWorld = true;
         
-        // Restaura posição
+        // RESTAURA CONFIGURAÇÕES DO MUNDO
         player.position.x = worldPlayerPosition.x;
         player.position.y = worldPlayerPosition.y;
         player.targetPosition.x = worldPlayerPosition.x;
         player.targetPosition.y = worldPlayerPosition.y;
+        player.mapSize = 1024;
+        player.setCollisionMap('/assets/worldMapColision.png'); // VOLTA PARA MAPA DO MUNDO
         
-        // RESTAURA O DARKNESS ORIGINAL AO VOLTAR
+        // RESTAURA O DARKNESS ORIGINAL
         darkness = originalDarkness;
         if (mistInstance) {
           mistInstance.updateDarkness(darkness);
@@ -257,18 +263,20 @@ function GameCanvas() {
       if (levelResult && levelResult.exit) {
         // SALVA o estado da chave antes de sair
         level2KeyCollected = level2Instance.isKeyCollected();
-        console.log('Chave salva:', level2KeyCollected);
+        console.log('Saindo do Level 2 - Chave salva:', level2KeyCollected);
         
         flagLevel2 = false;
         flagWorld = true;
         
-        // Restaura a posição do player no mundo
+        // RESTAURA CONFIGURAÇÕES DO MUNDO
         player.position.x = worldPlayerPosition.x;
         player.position.y = worldPlayerPosition.y;
         player.targetPosition.x = worldPlayerPosition.x;
         player.targetPosition.y = worldPlayerPosition.y;
+        player.mapSize = 1024;
+        player.setCollisionMap('/assets/worldMapColision.png'); // VOLTA PARA MAPA DO MUNDO
         
-        // RESTAURA O DARKNESS ORIGINAL AO VOLTAR
+        // RESTAURA O DARKNESS ORIGINAL
         darkness = originalDarkness;
         if (mistInstance) {
           mistInstance.updateDarkness(darkness);
@@ -291,9 +299,17 @@ function GameCanvas() {
       if (!xKeyPressed) {
         xKeyPressed = true;
         
-        // Salva posição
+        // SALVA POSIÇÃO ATUAL NO MUNDO
         worldPlayerPosition.x = player.position.x;
         worldPlayerPosition.y = player.position.y;
+        
+        // CONFIGURA PLAYER PARA O LEVEL1
+        player.position.x = 100;
+        player.position.y = 100;
+        player.targetPosition.x = 100;
+        player.targetPosition.y = 100;
+        player.mapSize = 800;
+        player.setCollisionMap('/assets/noColision.png'); // TROCA MAPA DE COLISÃO
         
         flagLevel1 = true;
         flagWorld = false;
@@ -301,9 +317,7 @@ function GameCanvas() {
         // RESTAURA o estado do item
         level.startFadeIn();
         level.setItemCollected(level1ItemCollected);
-        console.log('Item do Level1 restaurado:', level1ItemCollected);
-        
-        console.log('Entrando no Level 1...');
+        console.log('Entrando no Level 1 - Item restaurado:', level1ItemCollected);
         
         if (worldMap && worldMap.music) {
           worldMap.music.stopMusic();
@@ -328,19 +342,25 @@ function GameCanvas() {
       if (!xKeyPressedLevel2) {
         xKeyPressedLevel2 = true;
         
-        // Salva a posição atual do player no mundo
+        // SALVA POSIÇÃO ATUAL NO MUNDO
         worldPlayerPosition.x = player.position.x;
         worldPlayerPosition.y = player.position.y;
+        
+        // CONFIGURA PLAYER PARA O LEVEL2
+        player.position.x = 412;
+        player.position.y = 1150;
+        player.targetPosition.x = 412;
+        player.targetPosition.y = 1150;
+        player.mapSize = 1200;
+        player.setCollisionMap('/assets/level/lostForest2Collision.png'); // TROCA MAPA DE COLISÃO
         
         flagLevel2 = true;
         flagWorld = false;
         
-        // RESTAURA o estado da chave ao entrar no level
+        // RESTAURA o estado da chave
         level2Instance.startFadeIn();
         level2Instance.setKeyCollected(level2KeyCollected);
-        console.log('Chave restaurada:', level2KeyCollected);
-        
-        console.log('Entrando no Level 2...');
+        console.log('Entrando no Level 2 - Chave restaurada:', level2KeyCollected);
         
         if (worldMap && worldMap.music) {
           worldMap.music.stopMusic();

@@ -380,6 +380,12 @@ class Player{
   getCurrentSpeed() {
     return this.moveSpeed;
   }
+
+  setCollisionMap(imagePath) {
+  console.log('Atualizando mapa de colisão para:', imagePath);
+  this.collisionMap = CollisionMap(this.p5, imagePath);
+  this.collisionMap.preload(); // Recarrega o mapa de colisão com a nova imagem
+}
 }
 
 export default Player;

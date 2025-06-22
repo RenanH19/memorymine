@@ -2,8 +2,8 @@ import Player from "../../Player";
 import MusicManager from "../../audio/MusicManager";
 import mist from "../../maps/mist";
 
-function level2(p5) {
-  let player = new Player(p5, 412, 1150, 1200, '/assets/level/lostForest2Collision.png');
+function level2(p5, sharedPlayer) {
+  let player = sharedPlayer; // USA O PLAYER COMPARTILHADO
   let musicFile = '/assets/music/moongate.mp3';
   let music = MusicManager(p5, musicFile);
   let mistInstance = new mist(p5, 1024, 1201, 250);
@@ -70,7 +70,12 @@ function level2(p5) {
       console.error('Failed to load key sound:', error);
     });
 
-    player.loadPlayer();
+    levelImage = p5.loadImage('/assets/level/lostForest2.png', () => {
+      console.log('Level2 map loaded successfully');
+    }, (error) => {
+      console.error('Failed to load level2 map:', error);
+    });
+    
     music.loadMusic();
     mistInstance.loadMist();
   }
