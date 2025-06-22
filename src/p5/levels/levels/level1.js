@@ -11,11 +11,13 @@ function level1(p5, sharedPlayer) {
   let levelImage = null;
   let levelImageLight = null; // Mapa claro (se necessário)
   let labFront = null; // Opcional: layer de objetos em cima
+  let labLightFront = null; // Opcional: layer de objetos em cima (claro)
   let levelWidth = 800;
   let levelHeight = 640;
   let cameraX = 0;
   let cameraY = 0;
   let darkness = 255;
+  mistInstance.updateDarkness(darkness);
   let darknessLight = 0;
   let isSystemActive = false;
   
@@ -65,6 +67,13 @@ function level1(p5, sharedPlayer) {
 
     // Opcional: layer de árvores/objetos por cima
     labFront = p5.loadImage('/assets/level/LabDarkFront.png', () => {
+      console.log('Level1 trees loaded successfully');
+    }, (error) => {
+      console.log('Level1 trees not found or not needed');
+    });
+
+    // Opcional: layer de árvores/objetos por cima
+    labLightFront = p5.loadImage('/assets/level/LabLightFront.png', () => {
       console.log('Level1 trees loaded successfully');
     }, (error) => {
       console.log('Level1 trees not found or not needed');
@@ -132,6 +141,7 @@ function level1(p5, sharedPlayer) {
       systemMessageStep = 3; // Marca como completamente ativo
       if (mistInstance && mistInstance.updateDarkness) {
         mistInstance.updateDarkness(darknessLight);
+        mistInstance.updateFadeMist(0); // Reseta a névoa para clarear
       }
     }
   }
@@ -160,8 +170,8 @@ function level1(p5, sharedPlayer) {
             showSystemMessage = false;
 
             // Verifica se tem chave no inventário
-            const hasKey = player.hasItem('key')
-            
+            const hasKey = player.hasItem('key') || player.hasItem('book') || player.hasItem('Livro Antigo');
+
             if (hasKey) {
               // Tem a chave, ativa o sistema
               isSystemActive = true;
@@ -207,6 +217,7 @@ function level1(p5, sharedPlayer) {
       // Atualiza a escuridão na névoa
       if (mistInstance && mistInstance.updateDarkness) {
         mistInstance.updateDarkness(darknessLight);
+        mistInstance.updateFadeMist(0); // Reseta a névoa para clarear
       }
     }
   }
@@ -458,14 +469,6 @@ function level1(p5, sharedPlayer) {
     // Aplica transformação da câmera
     p5.translate(-cameraX, -cameraY);
 
-    // Desenha o mapa de fundo (escolhe entre escuro e claro)
-    const currentLevelImage = isSystemActive ? levelImageLight : levelImage;
-    if (currentLevelImage) {
-      p5.image(currentLevelImage, 0, 0, levelWidth, levelHeight);
-    } else {
-      p5.background(40, 40, 60);
-    }
-
     // Desenha a área do sistema (se não estiver ativo)
     drawSystemArea();
 
@@ -475,6 +478,14 @@ function level1(p5, sharedPlayer) {
     // Desenha o mapa de fundo
     if (levelImage) {
       p5.image(levelImage, 0, 0, levelWidth, levelHeight);
+    } else {
+      p5.background(40, 40, 60);
+    }
+
+    // Desenha o mapa de fundo (escolhe entre escuro e claro)
+    const currentLevelImage = isSystemActive ? levelImageLight : levelImage;
+    if (currentLevelImage) {
+      p5.image(currentLevelImage, 0, 0, levelWidth, levelHeight);
     } else {
       p5.background(40, 40, 60);
     }
@@ -490,6 +501,9 @@ function level1(p5, sharedPlayer) {
     // Desenha objetos por cima (se existir)
     if (labFront) {
       p5.image(labFront, 0, 0, levelWidth, levelHeight);
+    }
+    if (labLightFront && isSystemActive) {
+      p5.image(labLightFront, 0, 0, levelWidth, levelHeight);
     }
 
     // Fade in da música

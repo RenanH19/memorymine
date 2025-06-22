@@ -12,6 +12,7 @@ class mist {
     this.width = width;
     this.height = height;
     this.darkness = darkness;
+    this.fadeMist = 200;
   }
 
   loadMist(){
@@ -56,7 +57,7 @@ class mist {
   if (this.mistTexture) {
     // Escala de 200x200 para o tamanho real
     this.p5.push()
-    this.p5.tint(200, 200, 200, 200)
+    this.p5.tint(200, 200, 200, this.fadeMist); // controla a opacidade
     this.p5.image(this.mistTexture, 0, 0, this.width + 8000, this.height + 4000);
     this.p5.pop()
     }
@@ -159,6 +160,11 @@ class mist {
   updateDarkness(newDarkness) {
     this.darkness = newDarkness;
     console.log('Darkness atualizado para:', this.darkness);
+  }
+
+  updateFadeMist(newFadeMist) {
+    this.fadeMist = newFadeMist;
+    console.log('FadeMist atualizado para:', this.fadeMist);
   }
   
 }
