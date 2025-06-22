@@ -12,14 +12,20 @@ class Player{
     this.isMoving = false;
     this.mapSize = mapSize;
     this.frontPlayer = null;
-    this.moveSpeed = 0.6; // Velocidade de interpolação (0.1 a 0.3 funciona bem)
+    
+    // SISTEMA DE VELOCIDADE E CORRIDA
+    this.normalMoveSpeed = 0.6; // Velocidade normal
+    this.runMoveSpeed = 1.0; // Velocidade correndo
+    this.moveSpeed = this.normalMoveSpeed; // Velocidade atual
+    this.isRunning = false; // Flag para verificar se está correndo
 
     this.imageSprites = 36;
     this.spriteLoader = SpriteLoader(this.p5, '/assets/sprites/player/runSprites.png', 768, 192, this.imageSprites);
     this.spriteSelected = 0;
     this.playerSprites = null;
     this.frameCount = 0;
-    this.frameDelay = 6; // Aumentei o delay para animação mais suave
+    this.frameDelay = 6; // Delay normal para animação
+    this.runFrameDelay = 3; // Delay mais rápido quando correndo
     this.collisionMap = CollisionMap(this.p5, image); // Inicializa a variável collisionMap
 
     // Sistema de inventário
@@ -55,6 +61,26 @@ class Player{
   getPlayerSprites(){
     if (this.playerSprites === null){
       this.playerSprites = this.spriteLoader.getSprites();
+    }
+  }
+
+  // NOVA FUNÇÃO: Verifica se está correndo
+  checkRunning() {
+    // Verifica se a tecla 'Z' está pressionada junto com alguma seta
+    const zPressed = this.p5.keyIsDown(90); // Tecla Z (código 90)
+    const anyArrowPressed = this.p5.keyIsDown(this.p5.LEFT_ARROW) || 
+                           this.p5.keyIsDown(this.p5.RIGHT_ARROW) || 
+                           this.p5.keyIsDown(this.p5.UP_ARROW) || 
+                           this.p5.keyIsDown(this.p5.DOWN_ARROW);
+    
+    // Só está correndo se Z está pressionado E alguma seta está pressionada
+    this.isRunning = zPressed && anyArrowPressed && !this.inventoryVisible;
+    
+    // Atualiza a velocidade baseado no estado
+    if (this.isRunning) {
+      this.moveSpeed = this.runMoveSpeed;
+    } else {
+      this.moveSpeed = this.normalMoveSpeed;
     }
   }
 
@@ -146,12 +172,18 @@ class Player{
 
   update(){
     let AnimationDelay = () => {
-      if (this.frameCount > this.frameDelay){
+      // AJUSTA A VELOCIDADE DA ANIMAÇÃO BASEADO SE ESTÁ CORRENDO
+      const currentFrameDelay = this.isRunning ? this.runFrameDelay : this.frameDelay;
+      
+      if (this.frameCount > currentFrameDelay){
         this.frameCount = 0;
         this.spriteSelected++;
       }
       this.frameCount++;
     }
+
+    // VERIFICA SE ESTÁ CORRENDO ANTES DE QUALQUER COISA
+    this.checkRunning();
 
     // Interpolação suave da posição
     this.position.x = this.p5.lerp(this.position.x, this.targetPosition.x, this.moveSpeed);
@@ -287,7 +319,38 @@ class Player{
       selectedSlotData.height
     );
 
+    // Opcional: Indicador visual de corrida na tela
+    if (this.isRunning && !this.inventoryVisible) {
+      this.drawRunIndicator();
+    }
+
     // Restaura o estado
+    this.p5.pop();
+  }
+
+  // NOVA FUNÇÃO: Indicador visual de corrida
+  drawRunIndicator() {
+    this.p5.push();
+    this.p5.resetMatrix();
+    
+    // Posição no canto superior direito
+    const indicatorX = this.p5.width - 100;
+    const indicatorY = 20;
+    
+    // Fundo do indicador
+    this.p5.fill(0, 0, 0, 150);
+    this.p5.stroke(255, 255, 255);
+    this.p5.strokeWeight(2);
+    this.p5.rect(indicatorX, indicatorY, 80, 30, 5);
+    
+    // Texto "CORRENDO"
+    this.p5.fill(255, 255, 100); // Amarelo brilhante
+    this.p5.noStroke();
+    this.p5.textAlign(this.p5.CENTER, this.p5.CENTER);
+    this.p5.textSize(12);
+    this.p5.textStyle(this.p5.BOLD);
+    this.p5.text("CORRENDO", indicatorX + 40, indicatorY + 15);
+    
     this.p5.pop();
   }
 
@@ -300,13 +363,22 @@ class Player{
     return this.position;
   }
 
-  // Getters para o inventário
+  // Getters para o inventário e estado
   getInventory() {
     return this.inventory;
   }
 
   isInventoryOpen() {
     return this.inventoryVisible;
+  }
+
+  // NOVOS GETTERS: Para verificar o estado de corrida
+  getIsRunning() {
+    return this.isRunning;
+  }
+
+  getCurrentSpeed() {
+    return this.moveSpeed;
   }
 }
 

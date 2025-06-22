@@ -6,7 +6,7 @@ function level2(p5) {
   let player = new Player(p5, 412, 1150, 1200, '/assets/level/lostForest2Collision.png');
   let musicFile = '/assets/music/moongate.mp3';
   let music = MusicManager(p5, musicFile);
-  let mistInstance = new mist(p5, 1024, 1201);
+  let mistInstance = new mist(p5, 1024, 1201, 250);
   
   // Variáveis para o mapa
   let levelImage = null;
@@ -298,7 +298,7 @@ function level2(p5) {
     if (mistInstance) {
       mistInstance.buildMist();
       mistInstance.drawMist();
-      mistInstance.lightEffect(player.position);
+      mistInstance.lightEffectNoBox(player.position);
     }
 
     // Reset da transformação para elementos da UI

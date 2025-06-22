@@ -19,6 +19,20 @@ function GameCanvas() {
   let menu;
   let gameStarted = false;
   let textBoxImage;
+  let darkness = 235;
+  
+  // SISTEMA DE SOM E CLARÃO
+  let weirdSound = null;
+  let soundTimer = 0;
+  let nextSoundTime = 0;
+  let isSoundPlaying = false;
+  let soundStartTime = 0;
+  let soundDuration = 6000; // 6 segundos em milissegundos
+  let originalDarkness = 235;
+  let targetDarkness = 30;
+  let isFlashEffect = false;
+  let flashPhase = 0; // 0: descendo, 1: oscilando, 2: subindo
+  let oscillationTime = 0;
   
   // Variáveis para transição
   let isTransitioning = false;
@@ -36,8 +50,9 @@ function GameCanvas() {
   // Armazena posição do player no mundo
   let worldPlayerPosition = { x: 0, y: 0 };
   
-  // NOVA VARIÁVEL: Armazena se a chave foi coletada (similar à posição do player)
+  // Armazena se a chave foi coletada e item do level1
   let level2KeyCollected = false;
+  let level1ItemCollected = false;
   
   const preload = (p5) => {
     menu = new Menu(p5);
@@ -49,14 +64,109 @@ function GameCanvas() {
       console.error('Failed to load textBox image:', error);
     });
     
+    // CARREGA O SOM ESTRANHO
+    weirdSound = p5.loadSound('/assets/sounds/weird.mp3', () => {
+      console.log('Weird sound loaded successfully');
+      weirdSound.setVolume(0.5); // Volume do som
+    }, (error) => {
+      console.error('Failed to load weird sound:', error);
+    });
+    
     player = new Player(p5, 300, 400, 1024, '/assets/worldMapColision.png');
-    mistInstance = new mist(p5, 1024, 1024);
+    mistInstance = new mist(p5, 1024, 1024, darkness);
     worldMap = new worldMapClass(p5, player, mistInstance);
     worldMap.loadWorldMap();
     level = level1(p5);
     level.loadLevel();
     level2Instance = level2(p5);
     level2Instance.loadLevel();
+    
+    // INICIA O TIMER DO SOM
+    initializeSoundTimer();
+  }
+
+  // FUNÇÃO PARA INICIALIZAR O TIMER DO SOM
+  const initializeSoundTimer = () => {
+    // Tempo aleatório entre 25-35 segundos (em milissegundos)
+    const randomDelay = Math.random() * (35000 - 25000) + 15000;
+    nextSoundTime = Date.now() + randomDelay;
+    
+  }
+
+  // FUNÇÃO PARA CONTROLAR O EFEITO DE CLARÃO
+  const updateFlashEffect = (p5) => {
+    if (!isFlashEffect) return;
+
+    const currentTime = Date.now();
+    const elapsedTime = currentTime - soundStartTime;
+
+    if (flashPhase === 0) {
+      // FASE 1: Descendo para 30 (primeiros 1.5 segundos)
+      const progress = Math.min(elapsedTime / 1500, 1);
+      darkness = p5.lerp(originalDarkness, targetDarkness, progress);
+      
+      if (progress >= 1) {
+        flashPhase = 1;
+        oscillationTime = currentTime;
+      }
+    } 
+    else if (flashPhase === 1) {
+      // FASE 2: Oscilando entre 20-40 (3 segundos do meio)
+      const oscillationDuration = currentTime - oscillationTime;
+      if (oscillationDuration < 3000) {
+        const oscillation = Math.sin((oscillationDuration / 1000) * Math.PI * 4) * 50; // Oscila 4 vezes em 3 segundos
+        darkness = targetDarkness + oscillation;
+      } else {
+        flashPhase = 2;
+      }
+    }
+    else if (flashPhase === 2) {
+      // FASE 3: Subindo de volta para 235 (últimos 1.5 segundos)
+      const returnStartTime = soundStartTime + 4500; // 1.5s + 3s = 4.5s
+      const returnProgress = Math.min((currentTime - returnStartTime) / 1500, 1);
+      darkness = p5.lerp(targetDarkness, originalDarkness, returnProgress);
+      
+      if (returnProgress >= 1) {
+        // Finaliza o efeito
+        darkness = originalDarkness;
+        isFlashEffect = false;
+        flashPhase = 0;
+        isSoundPlaying = false;
+        console.log('Efeito de clarão finalizado');
+        
+        // Programa o próximo som
+        initializeSoundTimer();
+      }
+    }
+
+    // Atualiza a névoa com o novo valor de darkness
+    if (mistInstance) {
+      mistInstance.updateDarkness(darkness);
+    }
+  }
+
+  // FUNÇÃO PARA VERIFICAR E TOCAR O SOM
+  const checkWeirdSound = (p5) => {
+    if (!flagWorld || flagLevel1 || flagLevel2) return; // Só toca no mundo
+    if (isSoundPlaying) return; // Já está tocando
+
+    const currentTime = Date.now();
+    
+    if (currentTime >= nextSoundTime) {
+      if (weirdSound) {
+        console.log('Tocando som estranho e iniciando efeito de clarão');
+        weirdSound.play();
+        
+        // Inicia o efeito de clarão
+        isSoundPlaying = true;
+        soundStartTime = currentTime;
+        isFlashEffect = true;
+        flashPhase = 0;
+      } else {
+        // Se o som não carregou, programa o próximo
+        initializeSoundTimer();
+      }
+    }
   }
 
   const setup = (p5, parentRef) => {
@@ -93,6 +203,10 @@ function GameCanvas() {
     }
     
     if (flagWorld && !flagLevel1 && !flagLevel2) {
+      // VERIFICA O SOM ESTRANHO E ATUALIZA O EFEITO
+      checkWeirdSound(p5);
+      updateFlashEffect(p5);
+      
       worldMap.runWorld();
       checkLevel1Entry(p5);
       checkLevel2Entry(p5);
@@ -109,14 +223,39 @@ function GameCanvas() {
     }
     
     if (flagLevel1) {
-      level.runLevel();
+      const levelResult = level.runLevel();
+      
+      if (levelResult && levelResult.exit) {
+        // SALVA o estado do item antes de sair
+        level1ItemCollected = level.isItemCollected();
+        console.log('Item do Level1 salvo:', level1ItemCollected);
+        
+        flagLevel1 = false;
+        flagWorld = true;
+        
+        // Restaura posição
+        player.position.x = worldPlayerPosition.x;
+        player.position.y = worldPlayerPosition.y;
+        player.targetPosition.x = worldPlayerPosition.x;
+        player.targetPosition.y = worldPlayerPosition.y;
+        
+        // RESTAURA O DARKNESS ORIGINAL AO VOLTAR
+        darkness = originalDarkness;
+        if (mistInstance) {
+          mistInstance.updateDarkness(darkness);
+        }
+        
+        if (worldMap) {
+          worldMap.startFadeIn();
+        }
+      }
     }
     
     if (flagLevel2) {
       const levelResult = level2Instance.runLevel();
       
       if (levelResult && levelResult.exit) {
-        // SALVA o estado da chave antes de sair (similar à posição do player)
+        // SALVA o estado da chave antes de sair
         level2KeyCollected = level2Instance.isKeyCollected();
         console.log('Chave salva:', level2KeyCollected);
         
@@ -128,6 +267,12 @@ function GameCanvas() {
         player.position.y = worldPlayerPosition.y;
         player.targetPosition.x = worldPlayerPosition.x;
         player.targetPosition.y = worldPlayerPosition.y;
+        
+        // RESTAURA O DARKNESS ORIGINAL AO VOLTAR
+        darkness = originalDarkness;
+        if (mistInstance) {
+          mistInstance.updateDarkness(darkness);
+        }
         
         if (worldMap) {
           worldMap.startFadeIn();
@@ -145,8 +290,19 @@ function GameCanvas() {
     if (p5.keyIsDown(88) && isInArea) {
       if (!xKeyPressed) {
         xKeyPressed = true;
+        
+        // Salva posição
+        worldPlayerPosition.x = player.position.x;
+        worldPlayerPosition.y = player.position.y;
+        
         flagLevel1 = true;
         flagWorld = false;
+        
+        // RESTAURA o estado do item
+        level.startFadeIn();
+        level.setItemCollected(level1ItemCollected);
+        console.log('Item do Level1 restaurado:', level1ItemCollected);
+        
         console.log('Entrando no Level 1...');
         
         if (worldMap && worldMap.music) {
@@ -179,7 +335,7 @@ function GameCanvas() {
         flagLevel2 = true;
         flagWorld = false;
         
-        // RESTAURA o estado da chave ao entrar no level (similar à posição do player)
+        // RESTAURA o estado da chave ao entrar no level
         level2Instance.startFadeIn();
         level2Instance.setKeyCollected(level2KeyCollected);
         console.log('Chave restaurada:', level2KeyCollected);
