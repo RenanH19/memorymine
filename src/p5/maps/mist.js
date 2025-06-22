@@ -102,6 +102,18 @@ class mist {
     this.shadow.circle(position.x + 16, position.y + 16, r * 2);
     this.shadow.noErase();
     }
+    this.shadow.erase();
+    this.shadow.fill(255, 255, 200, 120); // Luz amarelada
+    
+    let RectX = position.x + 250;
+    let RectY = position.y + 260;
+    RectX = this.p5.constrain(RectX, this.p5.width - 150, this.width - 150);
+    RectY = this.p5.constrain(RectY, this.p5.height - 60, this.height - 60);
+
+    this.shadow.rect(RectX, RectY, 150, 60);
+    this.shadow.noErase();
+  
+
     this.p5.image(this.shadow, 0, 0);
 
     this.p5.pop();

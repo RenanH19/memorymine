@@ -11,6 +11,7 @@ class worldMap{
     this.cameraY = 0;
     this.mist = mist; // Inicializa a névoa
     this.music = MusicManager(p5, '/assets/music/worldMap.mp3');
+    this.yearBoxImage = null; // Nova variável para a yearBox
     
     // Variáveis para fade in
     this.fadeInAlpha = 255; // Começa totalmente preto
@@ -27,6 +28,14 @@ class worldMap{
     }, (err) => {
       console.error('Error loading world map:', err);
     });
+
+    // Carrega a imagem da yearBox
+    this.yearBoxImage = this.p5.loadImage('/assets/fonts/yearBox.png', () => {
+      console.log('YearBox image loaded successfully');
+    }, (error) => {
+      console.error('Failed to load yearBox image:', error);
+    });
+
     this.player.loadPlayer(); // Carrega o jogador
 
     if (this.mist) {
@@ -40,6 +49,67 @@ class worldMap{
     this.fadeInAlpha = 255;
     this.isFadingIn = true;
     this.musicVolume = 0;
+  }
+
+  drawYearBox() {
+    // Salva a matriz atual
+    this.p5.push();
+    
+    // Reset da transformação para desenhar na tela
+    this.p5.resetMatrix();
+    
+    // Dimensões e posição da yearBox (canto inferior direito)
+    const yearBoxWidth = 150;
+    const yearBoxHeight = 60;
+    const yearBoxX = this.p5.width - yearBoxWidth; // Colado na direita
+    const yearBoxY = this.p5.height - yearBoxHeight; // Colado na parte inferior
+    
+    // Desenha a yearBox como fundo
+    if (this.yearBoxImage) {
+      this.p5.image(this.yearBoxImage, yearBoxX, yearBoxY, yearBoxWidth, yearBoxHeight);
+    }
+    
+    // Configuração da fonte para aparência de ruína/destruição
+    this.p5.fill(139, 69, 19); // Cor marrom terroso/ferrugem
+    this.p5.stroke(101, 67, 33); // Contorno mais escuro
+    this.p5.strokeWeight(1);
+    this.p5.textAlign(this.p5.CENTER, this.p5.CENTER);
+    this.p5.textSize(14);
+    this.p5.textStyle(this.p5.BOLD);
+    
+    // Efeito de texto deteriorado/irregular
+    const text = "Ano: ????";
+    const textX = yearBoxX + yearBoxWidth / 2;
+    const textY = yearBoxY + yearBoxHeight / 2;
+    
+    // Desenha texto com efeito de sombra para aparência desgastada
+    this.p5.fill(0, 0, 0, 100); // Sombra
+    this.p5.noStroke();
+    this.p5.text(text, textX + 1, textY + 1);
+    
+    // Texto principal
+    this.p5.fill(139, 69, 19); // Cor ferrugem
+    this.p5.stroke(101, 67, 33);
+    this.p5.strokeWeight(0.5);
+    this.p5.text(text, textX, textY);
+
+    // Aplica efeito de névoa no texto se disponível
+    if (this.mist) {
+      // Cria uma versão simplificada da névoa para a área do texto
+      this.p5.push();
+      
+      // Define área de clipping para a yearBox
+      this.p5.drawingContext.save();
+      this.p5.drawingContext.beginPath();
+      this.p5.drawingContext.rect(yearBoxX, yearBoxY, yearBoxWidth, yearBoxHeight);
+      this.p5.drawingContext.clip();
+      
+      this.p5.drawingContext.restore();
+      this.p5.pop();
+    }
+    
+    // Restaura a matriz
+    this.p5.pop();
   }
 
   runWorld(){
@@ -61,14 +131,21 @@ class worldMap{
     this.music.playMusic();
     this.music.setVolume(this.musicVolume);
 
+    // Desenha a caixa do ano
+    this.drawYearBox();
+    
     if (this.mist) {
       this.mist.buildMist();
       this.mist.drawMist();
       this.mist.lightEffect(this.player.position);
     }
 
-    // Reset da transformação para desenhar o overlay de fade
+    this.player.displayInventory();
+
+    // Reset da transformação para desenhar elementos da UI
     this.p5.resetMatrix();
+
+    
 
     // Fade in visual
     if (this.isFadingIn) {

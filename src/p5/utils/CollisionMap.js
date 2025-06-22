@@ -1,7 +1,8 @@
-function CollisionMap(p5){
-    let collisionMap;
+function CollisionMap(p5, image){
+    let collisionMap = image;
+    
   function preload() {
-    collisionMap = p5.loadImage('/assets/worldMapColision.png');
+    collisionMap = p5.loadImage(image);
   }
 
   function canMove(x, y) {
