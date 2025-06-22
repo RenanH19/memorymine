@@ -1,4 +1,3 @@
-import Player from "../../Player";
 import MusicManager from "../../audio/MusicManager";
 import mist from "../../maps/mist";
 

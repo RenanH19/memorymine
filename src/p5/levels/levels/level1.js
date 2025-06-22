@@ -1,10 +1,9 @@
-import Player from "../../Player";
 import MusicManager from "../../audio/MusicManager";
 import mist from "../../maps/mist";
 
 function level1(p5, sharedPlayer) {
   let player = sharedPlayer; // USA O PLAYER COMPARTILHADO
-  let musicFile = '/assets/music/moongate.mp3';
+  let musicFile = '/assets/music/deepSound.mp3';
   let music = MusicManager(p5, musicFile);
   let mistInstance = new mist(p5, 800, 640);
   
