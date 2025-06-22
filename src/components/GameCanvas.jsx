@@ -304,13 +304,13 @@ function GameCanvas() {
         worldPlayerPosition.y = player.position.y;
         
         // CONFIGURA PLAYER PARA O LEVEL1
-        player.position.x = 100;
-        player.position.y = 100;
-        player.targetPosition.x = 100;
-        player.targetPosition.y = 100;
+        player.position.x = 390;
+        player.position.y = 600;
+        player.targetPosition.x = 390;
+        player.targetPosition.y = 600;
         player.mapSize = 800;
-        player.setCollisionMap('/assets/noColision.png'); // TROCA MAPA DE COLISÃO
-        
+        player.setCollisionMap('/assets/level/LabCollision.png'); // TROCA MAPA DE COLISÃO
+
         flagLevel1 = true;
         flagWorld = false;
         
@@ -385,10 +385,11 @@ function GameCanvas() {
     const textBoxY = p5.height - textBoxHeight - 20;
     
     if (textBoxImage) {
+      p5.tint(255, 255, 255, 128);
       p5.image(textBoxImage, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
     }
-    
-    p5.fill(255, 255, 255);
+
+    p5.fill(255, 255, 255, 128);
     p5.textAlign(p5.CENTER, p5.CENTER);
     p5.textSize(18);
     p5.textStyle(p5.BOLD);

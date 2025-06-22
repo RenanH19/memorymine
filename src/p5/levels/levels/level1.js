@@ -9,7 +9,7 @@ function level1(p5, sharedPlayer) {
   
   // Variáveis para o mapa
   let levelImage = null;
-  let treesImage = null; // Opcional: layer de objetos em cima
+  let labFront = null; // Opcional: layer de objetos em cima
   let levelWidth = 800;
   let levelHeight = 640;
   let cameraX = 0;
@@ -24,7 +24,7 @@ function level1(p5, sharedPlayer) {
   let musicFadeSpeed = 0.005;
 
   // Variáveis para controle de saída
-  let exitArea = { x: 100, y: 100, radius: 50 }; // Área de saída próxima ao spawn
+  let exitArea = { x: 390, y: 600, radius: 50 }; // Área de saída próxima ao spawn
   let zKeyPressed = false;
   let shouldExit = false;
   let textBoxImage = null;
@@ -38,14 +38,14 @@ function level1(p5, sharedPlayer) {
 
   function loadLevel() {
     // Carrega a imagem do level1
-    levelImage = p5.loadImage('/assets/maps/level1.png', () => {
+    levelImage = p5.loadImage('/assets/level/LabDark.png', () => {
       console.log('Level1 map loaded successfully');
     }, (error) => {
       console.error('Failed to load level1 map:', error);
     });
 
     // Opcional: layer de árvores/objetos por cima
-    treesImage = p5.loadImage('/assets/maps/level1trees.png', () => {
+    labFront = p5.loadImage('/assets/level/LabDarkFront.png', () => {
       console.log('Level1 trees loaded successfully');
     }, (error) => {
       console.log('Level1 trees not found or not needed');
@@ -71,13 +71,6 @@ function level1(p5, sharedPlayer) {
     }, (error) => {
       console.error('Failed to load item sound:', error);
     });
-
-    levelImage = p5.loadImage('/assets/maps/level1.png', () => {
-      console.log('Level1 map loaded successfully');
-    }, (error) => {
-      console.error('Failed to load level1 map:', error);
-    });
-
     
     music.loadMusic();
     mistInstance.loadMist();
@@ -219,6 +212,7 @@ function level1(p5, sharedPlayer) {
     const textBoxY = p5.height - textBoxHeight - 20;
     
     if (textBoxImage) {
+      p5.tint(255, 255, 255, 128);
       p5.image(textBoxImage, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
     } else {
       p5.fill(0, 0, 0, 150);
@@ -227,7 +221,7 @@ function level1(p5, sharedPlayer) {
       p5.rect(textBoxX, textBoxY, textBoxWidth, textBoxHeight, 10);
     }
     
-    p5.fill(255, 255, 255);
+    p5.fill(255, 255, 255, 128);
     p5.noStroke();
     p5.textAlign(p5.CENTER, p5.CENTER);
     p5.textSize(18);
@@ -270,8 +264,8 @@ function level1(p5, sharedPlayer) {
     player.display();
 
     // Desenha objetos por cima (se existir)
-    if (treesImage) {
-      p5.image(treesImage, 0, 0, levelWidth, levelHeight);
+    if (labFront) {
+      p5.image(labFront, 0, 0, levelWidth, levelHeight);
     }
 
     // Fade in da música

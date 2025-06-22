@@ -109,15 +109,15 @@ function level2(p5, sharedPlayer) {
         
         // Adiciona a chave ao inventário
         const keyItem = {
-          name: "chave",
+          name: "Lab key",
           image: keyImage,
           type: "key"
         };
         
         const added = player.addItem(keyItem);
         if (added) {
-          console.log('Chave coletada!');
-          
+          console.log('Chave do laboratório coletada!');
+
           // Toca o som da chave
           if (keySound) {
             keySound.play();
@@ -146,6 +146,7 @@ function level2(p5, sharedPlayer) {
     
     // Desenha a textBox como fundo se carregada
     if (textBoxImage) {
+      p5.tint(255, 255, 255, 128)
       p5.image(textBoxImage, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
     } else {
       // Fallback: fundo simples
@@ -156,7 +157,7 @@ function level2(p5, sharedPlayer) {
     }
     
     // Desenha o texto branco por cima da textBox
-    p5.fill(255, 255, 255);
+    p5.fill(255, 255, 255, 128);
     p5.noStroke();
     p5.textAlign(p5.CENTER, p5.CENTER);
     p5.textSize(18);
@@ -232,6 +233,7 @@ function level2(p5, sharedPlayer) {
     
     // Desenha a textBox como fundo se carregada
     if (textBoxImage) {
+      p5.tint(255, 255, 255, 128);
       p5.image(textBoxImage, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
     } else {
       // Fallback: fundo simples
@@ -242,7 +244,7 @@ function level2(p5, sharedPlayer) {
     }
     
     // Desenha o texto branco por cima da textBox
-    p5.fill(255, 255, 255);
+    p5.fill(255, 255, 255, 128);
     p5.noStroke();
     p5.textAlign(p5.CENTER, p5.CENTER);
     p5.textSize(18);
