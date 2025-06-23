@@ -7,6 +7,7 @@ function level1(p5, sharedPlayer) {
   let music = MusicManager(p5, musicFile);
   let mistInstance = new mist(p5, 800, 640);
   
+  
   // Variáveis para o mapa
   let levelImage = null;
   let levelImageLight = null; // Mapa claro (se necessário)
@@ -55,6 +56,27 @@ function level1(p5, sharedPlayer) {
   let xKeyPressedForLevel3 = false;
   let shouldEnterLevel3 = false;
   let onSystemActivated = null; // Callback para quando o sistema for ativado
+
+  // Variáveis para ativação do sistema com delay
+  let isActivatingSystem = false; // Flag para indicar que está ativando
+  let activationStartTime = 0; // Tempo de início da ativação
+  let activationDuration = 1500; // 1.5 segundos em milissegundos
+  let blinkSpeed = 200; // Velocidade da piscada em milissegundos
+  let activationSound = null; // Som de ativação do sistema
+
+  // Variáveis para música e alarme de emergência
+  let warnMusic = null; // Música de alerta
+  let sirenSound = null; // Som de sirene
+  let isEmergencyMode = false; // Flag para modo de emergência
+
+  let redAlarmAlpha = 10; // Transparência do alarme vermelho
+  let redAlarmDirection = 1; // Direção da pulsação (1 = aumentando, -1 = diminuindo)
+  let redAlarmSpeed = 0.5; // Velocidade da pulsação
+  let maxRedAlarmAlpha = 30; // Máxima intensidade do alarme (0-255)
+
+  // Adicione essas variáveis após as outras variáveis:
+  let robots = []; // Array de robôs
+  let maxRobots = 2; // Número máximo de robôs
 
   function loadLevel() {
     // Carrega a imagem do level1 (escuro)
@@ -112,6 +134,28 @@ function level1(p5, sharedPlayer) {
     }, (error) => {
       console.error('Failed to load item sound:', error);
     });
+
+    // ADICIONAR ESTAS LINHAS - Carrega o som de ativação do sistema:
+    activationSound = p5.loadSound('/assets/sounds/typing.mp3', () => {
+      console.log('System activation sound loaded successfully');
+    }, (error) => {
+      console.error('Failed to load system activation sound:', error);
+    });
+
+      // ADICIONAR ESTAS LINHAS - Carrega a música de alerta:
+    warnMusic = p5.loadSound('/assets/music/warn.mp3', () => {
+      console.log('Warning music loaded successfully');
+    }, (error) => {
+      console.error('Failed to load warning music:', error);
+    });
+
+    // ADICIONAR ESTAS LINHAS - Carrega o som de sirene:
+    sirenSound = p5.loadSound('/assets/sounds/siren.mp3', () => {
+      console.log('Siren sound loaded successfully');
+    }, (error) => {
+      console.error('Failed to load siren sound:', error);
+    });
+      
     
     music.loadMusic();
     mistInstance.loadMist();
@@ -129,6 +173,9 @@ function level1(p5, sharedPlayer) {
     xKeyPressedForSystem = false;
     showSystemMessage = false;
     showKeyMessage = false;
+    isActivatingSystem = false;
+    redAlarmAlpha = 0;
+    redAlarmDirection = 1;
   }
 
   // Método para definir se o item foi coletado (usado na persistência)
@@ -144,18 +191,20 @@ function level1(p5, sharedPlayer) {
   // Método para definir se o sistema está ativo (usado na persistência)
   function setSystemActive(active) {
     isSystemActive = active;
+    isActivatingSystem = false; // Reset do estado de ativação
+    
     if (active) {
       darknessLight = 0; // Se o sistema já está ativo, clarear imediatamente
       systemMessageStep = 3; // Marca como completamente ativo
       if (mistInstance && mistInstance.updateDarkness) {
         mistInstance.updateDarkness(darknessLight);
-        mistInstance.updateFadeMist(0); // Reseta a névoa para clarear
+        mistInstance.updateFadeMist(0);
       }
     }
   }
 
   function checkSystemBarrier() {
-    if (!isSystemActive && player.position.y < 370) {
+    if (!isSystemActive && !isActivatingSystem && player.position.y < 370) {
       // Força o player a voltar para y = 370
       player.position.y = 370;
       player.targetPosition.y = 370;
@@ -222,26 +271,24 @@ function level1(p5, sharedPlayer) {
       const distance = p5.dist(player.position.x, player.position.y, systemArea.x, systemArea.y);
       const isInSystemArea = distance < systemArea.radius;
       
-      if (isInSystemArea && systemMessageStep >= 1 && !isSystemActive) {
+      if (isInSystemArea && systemMessageStep >= 1 && !isSystemActive && !isActivatingSystem) {
         // Verifica se o player tem e está usando uma chave
         const hasKey = player.hasItem('key');
         
         if (hasKey) {
           // Ativa o sistema
-          isSystemActive = true;
+          isActivatingSystem = true;
+          activationStartTime = p5.millis();
           systemMessageStep = 3;
           showKeyMessage = false;
           showSystemMessage = false;
           
-          console.log('Sistema ativado! Laboratório iluminando...');
+          console.log('Ativando o sistema do laboratório...');
 
           // ADICIONAR ESTA LINHA - Notifica que o sistema foi ativado
-          if (onSystemActivated) {
-            onSystemActivated();
+          if (activationSound) {
+          activationSound.play();
           }
-          
-          // Inicia a transição suave de escuridão
-          darknessLight = 255; // Começa escuro
           
           // Fecha o inventário automaticamente
           player.inventoryVisible = false;
@@ -254,9 +301,111 @@ function level1(p5, sharedPlayer) {
       return false;
     }
 
-   function updateSystemTransition() {
-    if (isSystemActive && darknessLight > 0) {
-      // Transição suave para clarear
+    // ADICIONAR ESTA NOVA FUNÇÃO - Controla o processo de ativação:
+  // Versão alternativa com transição ainda mais suave:
+function updateSystemActivation() {
+  if (!isActivatingSystem) return;
+
+  const currentTime = p5.millis();
+  const elapsedTime = currentTime - activationStartTime;
+  
+  if (elapsedTime < activationDuration) {
+    // Cria uma oscilação suave baseada em múltiplas ondas
+    const progress = elapsedTime / activationDuration; // 0 a 1
+    
+    // Combina diferentes frequências de noise para efeito mais natural
+    const time = currentTime * 0.005;
+    const mainWave = p5.noise(time) * 0.6;
+    const detailWave = p5.noise(time * 2.5) * 0.3;
+    const flickerWave = p5.noise(time * 8) * 0.1;
+    
+    const combinedWave = mainWave + detailWave + flickerWave;
+    
+    // Mapeia para valores de escuridão (mais suave)
+    darknessLight = p5.map(combinedWave, 0, 1, 120, 60);
+    
+    // Adiciona uma progressão gradual - sistema fica mais estável com o tempo
+    const stabilityFactor = 1 - progress; // Mais instável no início
+    const instability = p5.map(stabilityFactor, 0, 1, 10, 100);
+    darknessLight += p5.random(-instability, instability);
+    
+    // Limita os valores
+    darknessLight = p5.constrain(darknessLight, 0, 255);
+    
+    // Atualiza a névoa com o valor atual
+    if (mistInstance && mistInstance.updateDarkness) {
+      mistInstance.updateDarkness(darknessLight);
+    }
+    
+  } else {
+    // Ativação completa: sistema definitivamente ativo
+    isActivatingSystem = false;
+    isSystemActive = true;
+    isEmergencyMode = true; // ATIVAR MODO DE EMERGÊNCIA
+    darknessLight = 0; // Força para totalmente claro
+    
+    console.log('Sistema ativado! Laboratório iluminado.');
+
+    // ADICIONAR ESTAS LINHAS - Muda para música de alerta e toca sirene:
+    if (music) {
+      music.stopMusic(); // Para a música anterior
+    }
+    
+    if (warnMusic) {
+      warnMusic.loop(); // Toca a música de alerta em loop
+      warnMusic.setVolume(0.1);
+      console.log('Música de alerta iniciada');
+    }
+    
+    if (sirenSound) {
+      sirenSound.play(); // Toca a sirene em loop
+      sirenSound.setVolume(0.3);
+      console.log('Sirene de emergência ativada');
+    }
+
+    // Notifica que o sistema foi ativado
+    if (onSystemActivated) {
+      onSystemActivated();
+    }
+    
+    // Atualiza a névoa final
+    if (mistInstance && mistInstance.updateDarkness) {
+      mistInstance.updateDarkness(darknessLight);
+      mistInstance.updateFadeMist(0);
+    }
+  }
+}
+
+    function getEmergencyMode() {
+      return isEmergencyMode;
+  }
+
+  function setEmergencyMode(active) {
+    isEmergencyMode = active;
+    
+    if (active) {
+      // Ativa modo de emergência
+      if (music) {
+        music.stopMusic();
+      }
+      
+      if (warnMusic && !warnMusic.isPlaying()) {
+        warnMusic.loop();
+        warnMusic.setVolume(0.1);
+      }
+      
+      if (sirenSound && !sirenSound.isPlaying()) {
+        sirenSound.play();
+        sirenSound.setVolume(0.3);
+      }
+    }
+  }
+
+    // Modifique a função updateSystemTransition para não interferir durante a ativação:
+  function updateSystemTransition() {
+    // Só faz a transição suave se NÃO estiver no processo de ativação
+    if (isSystemActive && !isActivatingSystem && darknessLight > 0) {
+      // Transição suave para clarear (só para casos onde o sistema já estava ativo)
       darknessLight = p5.lerp(darknessLight, 0, 0.02);
       
       if (darknessLight < 1) {
@@ -266,7 +415,7 @@ function level1(p5, sharedPlayer) {
       // Atualiza a escuridão na névoa
       if (mistInstance && mistInstance.updateDarkness) {
         mistInstance.updateDarkness(darknessLight);
-        mistInstance.updateFadeMist(0); // Reseta a névoa para clarear
+        mistInstance.updateFadeMist(0);
       }
     }
   }
@@ -464,7 +613,10 @@ function level1(p5, sharedPlayer) {
     p5.textSize(18);
     p5.textStyle(p5.BOLD);
     
-    if (showSystemMessage) {
+    if (isActivatingSystem) {
+      // ADICIONAR ESTA MENSAGEM durante a ativação:
+      p5.text("Ativando sistema...", p5.width / 2, textBoxY + textBoxHeight / 2);
+    } else if (showSystemMessage) {
       p5.text("Sistema fora de operação", p5.width / 2, textBoxY + textBoxHeight / 2);
     } else if (showKeyMessage) {
       p5.text("Use uma chave do inventário para ativar", p5.width / 2, textBoxY + textBoxHeight / 2);
@@ -556,21 +708,27 @@ function level1(p5, sharedPlayer) {
     if (p5.keyIsDown(90) && isInExitArea) { // Tecla Z
       if (!zKeyPressed) {
         zKeyPressed = true;
-        shouldExit = true;
-        console.log('Saindo do Level 1...');
         
-        if (music) {
-          music.stopMusic();
+        if (isEmergencyMode) {
+            console.log('SAÍDA BLOQUEADA - Modo de emergência ativo!');
+            return { shouldExit: false, isInExitArea, isBlocked: true };
+          } else {
+            shouldExit = true;
+            console.log('Saindo do Level 1...');
+            
+            if (music) {
+              music.stopMusic();
+            }
+          }
         }
+      } else if (!p5.keyIsDown(90)) {
+        zKeyPressed = false;
       }
-    } else if (!p5.keyIsDown(90)) {
-      zKeyPressed = false;
-    }
 
-    return { shouldExit, isInExitArea };
+    return { shouldExit, isInExitArea, isBlocked: isEmergencyMode };
   }
 
-  function drawExitIndicator() {
+  function drawExitIndicator(isBlocked = false) {
     p5.push();
     p5.resetMatrix();
     
@@ -594,7 +752,14 @@ function level1(p5, sharedPlayer) {
     p5.textAlign(p5.CENTER, p5.CENTER);
     p5.textSize(18);
     p5.textStyle(p5.BOLD);
-    p5.text("Pressione 'Z' para voltar ao mundo", p5.width / 2, textBoxY + textBoxHeight / 2);
+    
+    if (isBlocked) {
+      // NOVA MENSAGEM para modo de emergência:
+      p5.fill(255, 100, 100, 200); // Vermelho para indicar bloqueio
+      p5.text("SAÍDA BLOQUEADA - EMERGÊNCIA ATIVA", p5.width / 2, textBoxY + textBoxHeight / 2);
+    } else {
+      p5.text("Pressione 'Z' para voltar ao mundo", p5.width / 2, textBoxY + textBoxHeight / 2);
+    }
     
     p5.pop();
   }
@@ -617,6 +782,9 @@ function level1(p5, sharedPlayer) {
 
     // Verifica interação com o sistema
     const isNearSystem = checkSystemInteraction();
+
+    // ADICIONAR ESTA LINHA - Atualiza o processo de ativação:
+    updateSystemActivation();
 
     // Atualiza transição do sistema
     updateSystemTransition();
@@ -680,20 +848,42 @@ function level1(p5, sharedPlayer) {
     // Reset da transformação para UI
     p5.resetMatrix();
 
-    // Desenha indicadores
-      if (exitData.isInExitArea) {
-      drawExitIndicator();
+    if (isEmergencyMode) {
+      // Atualiza a pulsação do alarme vermelho
+      redAlarmAlpha += redAlarmSpeed * redAlarmDirection;
+      
+      // Inverte a direção quando atinge os limites
+      if (redAlarmAlpha >= maxRedAlarmAlpha) {
+        redAlarmAlpha = maxRedAlarmAlpha;
+        redAlarmDirection = -1;
+      } else if (redAlarmAlpha <= 10) {
+        redAlarmAlpha = 10;
+        redAlarmDirection = 1;
+      }
+      
+      // Desenha overlay vermelho pulsante
+      p5.fill(255, 0, 0, redAlarmAlpha);
+      p5.rect(0, 0, p5.width, p5.height);
+    } else {
+      // Reset do alarme quando não está em emergência
+      redAlarmAlpha = 0;
+      redAlarmDirection = 1;
+    }
+
+    // Desenha indicadores (AGORA level3Data JÁ FOI DECLARADO)
+    if (exitData.isInExitArea) {
+      drawExitIndicator(exitData.isBlocked);
     } else if (level3Data.isInLevel3Area) {
       drawLevel3AccessIndicator(level3Data.hasAccess);
+    } else if (isActivatingSystem) {
+      drawSystemIndicator();
     } else if (isNearSystem && (showSystemMessage || (systemMessageStep === 2 && !isSystemActive))) {
       if (systemMessageStep === 2) {
-        // Mostra mensagem especial quando deve usar o inventário
         showKeyMessage = true;
         drawSystemIndicator();
       } else {
         drawSystemIndicator();
       }
-
     } else if (isNearItem && !itemCollected) {
       drawItemIndicator();
     }
@@ -744,7 +934,17 @@ function level1(p5, sharedPlayer) {
     if (music) {
       music.stopMusic();
     }
+    // ADICIONAR ESTAS LINHAS - Para todos os sons de emergência:
+    if (warnMusic && warnMusic.isPlaying()) {
+      warnMusic.stop();
+    }
+    
+    if (sirenSound && sirenSound.isPlaying()) {
+      sirenSound.stop();
   }
+  }
+
+  
 
   function isFadeComplete() {
     return !isFadingIn;
@@ -792,6 +992,8 @@ function level1(p5, sharedPlayer) {
     setSystemProgress,
     getSystemProgress,
     setSystemActivatedCallback,
+    getEmergencyMode,    
+    setEmergencyMode,
     isFadeComplete,
     setFadeSpeed,
     setMusicFadeSpeed,

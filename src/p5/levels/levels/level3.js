@@ -1,4 +1,5 @@
 import MusicManager from "../../audio/MusicManager";
+import Robot from "../../Robot";
 
 function level3(p5, sharedPlayer) {
   let player = sharedPlayer; // USA O PLAYER COMPARTILHADO
@@ -33,7 +34,53 @@ function level3(p5, sharedPlayer) {
   let secretItemCollected = false;
   let xKeyPressedForSecret = false;
 
+  // Variáveis para música e alarme de emergência
+  let warnMusic = null; // Música de alerta
+  let sirenSound = null; // Som de sirene
+  let isEmergencyMode = false; // Flag para modo de emergência
+
+  let redAlarmAlpha = 10; // Transparência do alarme vermelho
+  let redAlarmDirection = 1; // Direção da pulsação (1 = aumentando, -1 = diminuindo)
+  let redAlarmSpeed = 0.5; // Velocidade da pulsação
+  let maxRedAlarmAlpha = 30; // Máxima intensidade do alarme (0-255)
+
+  // Variáveis para robôs
+  let robots = []; // Array de robôs
+  let robotSpawnTimer = 0; // Timer para spawn das hordas
+  let firstHordeSpawned = false; // Flag para primeira horda
+  let secondHordeSpawned = false; // Flag para segunda horda
+
+  // Posições das hordas
+  const hordePositions = {
+    first: [
+      { x: 700, y: 780 }, // Horda 1 - posição 1
+      { x: 700, y: 780 }, // Horda 1 - posição 2
+      { x: 70, y: 780 },  // Horda 2 - posição 1
+      { x: 70, y: 780 }   // Horda 2 - posição 2
+    ],
+    second: [
+      { x: 70, y: 430 },  // Horda 3 - posição 1
+      { x: 70, y: 430 },  // Horda 3 - posição 2
+      { x: 700, y: 430 }, // Horda 4 - posição 1
+      { x: 700, y: 430 }  // Horda 4 - posição 2
+    ]
+  };
+
   function loadLevel() {
+
+    // ADICIONAR ESTAS LINHAS - Carrega a música de alerta:
+    warnMusic = p5.loadSound('/assets/music/warn.mp3', () => {
+      console.log('Warning music loaded successfully in Level3');
+    }, (error) => {
+      console.error('Failed to load warning music in Level3:', error);
+    });
+
+    // ADICIONAR ESTAS LINHAS - Carrega o som de sirene:
+    sirenSound = p5.loadSound('/assets/sounds/siren.mp3', () => {
+      console.log('Siren sound loaded successfully in Level3');
+    }, (error) => {
+      console.error('Failed to load siren sound in Level3:', error);
+    });
     // Carrega o mapa principal do level3
     levelImage = p5.loadImage('/assets/level/secretRoomFinal.png', () => {
       console.log('Level3 background loaded successfully');
@@ -62,7 +109,143 @@ function level3(p5, sharedPlayer) {
       console.log('Secret item image not found');
     });
     
+    initializeRobotSystem();
+
     music.loadMusic();
+
+  }
+    // ADICIONAR ESTA NOVA FUNÇÃO - Inicializar sistema de robôs:
+  function initializeRobotSystem() {
+    robots = []; // Limpa array existente
+    robotSpawnTimer = 0;
+    firstHordeSpawned = false;
+    secondHordeSpawned = false;
+    
+    console.log('Sistema de robôs inicializado no Level3');
+  }
+
+    // ADICIONAR ESTA NOVA FUNÇÃO - Criar uma horda de robôs:
+  function createRobotHorde(positions) {
+    positions.forEach((pos, index) => {
+      // Adiciona uma pequena variação na posição para evitar sobreposição
+      const offsetX = (Math.random() - 0.5) * 40; // ±20px
+      const offsetY = (Math.random() - 0.5) * 40; // ±20px
+      
+      const robot = new Robot(p5, pos.x + offsetX, pos.y + offsetY, levelWidth);
+      
+      robot.loadSprites();
+      robot.setCollisionMap('/assets/sprites/player/secretRoomRoboCollision.png');
+      robot.setSpeed(1.2); // Velocidade dos robôs
+      robot.setFollowRange(300); // Alcance de seguimento
+      robot.setAttackRange(35); // Alcance de ataque
+      // robot.enableDebug(); // Descomente para ver os alcances
+      
+      robots.push(robot);
+      console.log(`Robô ${robots.length} criado na posição (${pos.x + offsetX}, ${pos.y + offsetY})`);
+    });
+  }
+
+    // ADICIONAR ESTA NOVA FUNÇÃO - Atualizar sistema de spawn:
+  function updateRobotSpawning() {
+    robotSpawnTimer += 1/60; // Incrementa em segundos (assumindo 60 FPS)
+    
+    // Primeira horda após entrar no level3
+    if (!firstHordeSpawned && robotSpawnTimer >= 1) { // 1 segundo após entrar
+      console.log('Spawning primeira horda de robôs...');
+      createRobotHorde(hordePositions.first);
+      firstHordeSpawned = true;
+    }
+    
+    // Segunda horda após 10 segundos
+    if (!secondHordeSpawned && robotSpawnTimer >= 10) { // 10 segundos
+      console.log('Spawning segunda horda de robôs...');
+      createRobotHorde(hordePositions.second);
+      secondHordeSpawned = true;
+    }
+  }
+
+    // ADICIONAR ESTA NOVA FUNÇÃO - Atualizar robôs:
+  function updateRobots() {
+    robots.forEach(robot => {
+      if (robot.isAlive()) {
+        // Robô segue o player
+        robot.followPlayer(player.position);
+        robot.update();
+        
+        // Verifica colisão com player
+        if (robot.checkPlayerCollision(player.position)) {
+          // Player recebe dano
+          if (player.takeDamage) {
+            player.takeDamage(15); // 15 de dano no level3
+          } else {
+            console.log('Player recebeu dano do robô no Level3!');
+          }
+        }
+      }
+    });
+  }
+
+    // ADICIONAR ESTA NOVA FUNÇÃO - Desenhar robôs:
+  function drawRobots() {
+    robots.forEach(robot => {
+      if (robot.isAlive()) {
+        robot.display();
+      }
+    });
+  }
+
+    // ADICIONAR ESTA NOVA FUNÇÃO - Limpar robôs mortos:
+  function cleanupRobots() {
+    const aliveBefore = robots.length;
+    robots = robots.filter(robot => robot.isAlive());
+    const aliveAfter = robots.length;
+    
+    if (aliveBefore !== aliveAfter) {
+      console.log(`${aliveBefore - aliveAfter} robôs removidos. Restam: ${aliveAfter}`);
+    }
+  }
+
+    // ADICIONAR ESTA NOVA FUNÇÃO - Verificar se todos os robôs foram destruídos:
+  function areAllRobotsDestroyed() {
+    return robots.every(robot => !robot.isAlive());
+  }
+
+  function getEmergencyMode() {
+    return isEmergencyMode;
+  }
+
+  function setEmergencyMode(active) {
+    isEmergencyMode = active;
+    
+    if (active) {
+      console.log('Modo de emergência ativado no Level3');
+      
+      // Para a música normal e ativa a música de emergência
+      if (music) {
+        music.stopMusic();
+      }
+      
+      if (warnMusic && !warnMusic.isPlaying()) {
+        warnMusic.loop();
+        warnMusic.setVolume(0.1);
+        console.log('Música de alerta iniciada no Level3');
+      }
+      
+      if (sirenSound && !sirenSound.isPlaying()) {
+        sirenSound.play();
+        sirenSound.setVolume(0.3);
+        console.log('Sirene ativada no Level3');
+      }
+    } else {
+      // Para os sons de emergência se necessário
+      if (warnMusic && warnMusic.isPlaying()) {
+        warnMusic.stop();
+      }
+      
+      if (sirenSound && sirenSound.isPlaying()) {
+        sirenSound.stop();
+      }
+    }
   }
 
   function startFadeIn() {
@@ -72,7 +255,12 @@ function level3(p5, sharedPlayer) {
     shouldExit = false;
     zKeyPressed = false;
     xKeyPressedForSecret = false;
+    redAlarmAlpha = 0;
+    redAlarmDirection = 1;
     // Mantém o estado dos itens coletados
+
+    // ADICIONAR ESTA LINHA - Reset do sistema de robôs:
+    initializeRobotSystem();
   }
 
   // Métodos para persistência do item secreto
@@ -229,6 +417,11 @@ function level3(p5, sharedPlayer) {
       return { exit: true };
     }
 
+      // ADICIONAR ESTAS LINHAS - Sistema de robôs:
+    updateRobotSpawning();
+    updateRobots();
+    cleanupRobots();
+
     // Verifica interação com item secreto
     const isNearSecret = checkSecretInteraction();
 
@@ -254,21 +447,90 @@ function level3(p5, sharedPlayer) {
     player.update();
     player.display();
 
+    // ADICIONAR ESTA LINHA - Desenhar robôs após o player:
+    drawRobots();
+
     // Desenha objetos por cima (se existir)
     if (frontImage) {
       p5.image(frontImage, 0, 0, levelWidth, levelHeight);
     }
 
     // Fade in da música
-    if (musicVolume < targetMusicVolume) {
-      musicVolume = p5.lerp(musicVolume, targetMusicVolume, musicFadeSpeed);
+    if (isEmergencyMode) {
+      // Garante que os sons de emergência continuem tocando
+      if (warnMusic && !warnMusic.isPlaying()) {
+        warnMusic.loop();
+        warnMusic.setVolume(0.1);
+      }
+      
+      if (sirenSound && !sirenSound.isPlaying()) {
+        sirenSound.play();
+        sirenSound.setVolume(0.3);
+      }
+    } else {
+      // Só toca música normal se NÃO estiver em modo de emergência
+      if (musicVolume < targetMusicVolume) {
+        musicVolume = p5.lerp(musicVolume, targetMusicVolume, musicFadeSpeed);
+      }
+      
+      music.playMusic();
+      music.setVolume(musicVolume);
     }
-    
-    music.playMusic();
-    music.setVolume(musicVolume);
 
     // Reset da transformação para UI
     p5.resetMatrix();
+
+  if (isEmergencyMode) {
+      // Atualiza a pulsação do alarme vermelho
+      redAlarmAlpha += redAlarmSpeed * redAlarmDirection;
+      
+      // Inverte a direção quando atinge os limites
+      if (redAlarmAlpha >= maxRedAlarmAlpha) {
+        redAlarmAlpha = maxRedAlarmAlpha;
+        redAlarmDirection = -1;
+      } else if (redAlarmAlpha <= 10) {
+        redAlarmAlpha = 10;
+        redAlarmDirection = 1;
+      }
+      
+      // Desenha overlay vermelho pulsante
+      p5.fill(255, 0, 0, redAlarmAlpha); // Vermelho com transparência
+      p5.rect(0, 0, p5.width, p5.height);
+    } else {
+      // Reset do alarme quando não está em emergência
+      redAlarmAlpha = 0;
+      redAlarmDirection = 1;
+    }
+
+    // ADICIONAR ESTA PARTE - Efeito de alarme vermelho:
+  if (isEmergencyMode) {
+    // Atualiza a pulsação do alarme vermelho
+    redAlarmAlpha += redAlarmSpeed * redAlarmDirection;
+    
+    // Inverte a direção quando atinge os limites
+    if (redAlarmAlpha >= maxRedAlarmAlpha) {
+      redAlarmAlpha = maxRedAlarmAlpha;
+      redAlarmDirection = -1;
+    } else if (redAlarmAlpha <= 10) {
+      redAlarmAlpha = 10;
+      redAlarmDirection = 1;
+    }
+    
+    // Desenha overlay vermelho pulsante
+    p5.fill(255, 0, 0, redAlarmAlpha); // Vermelho com transparência
+    p5.rect(0, 0, p5.width, p5.height);
+  } else {
+    // Reset do alarme quando não está em emergência
+    redAlarmAlpha = 0;
+    redAlarmDirection = 1;
+  }
+
+  // Desenha indicadores (prioridade: saída > item secreto)
+  if (exitData.isInExitArea) {
+    drawExitIndicator();
+  } else if (isNearSecret && !secretItemCollected) {
+    drawSecretIndicator();
+  }
 
     // Desenha indicadores (prioridade: saída > item secreto)
     if (exitData.isInExitArea) {
@@ -300,6 +562,17 @@ function level3(p5, sharedPlayer) {
     if (music) {
       music.stopMusic();
     }
+    
+    // ADICIONAR ESTAS LINHAS - Para todos os sons de emergência:
+    if (warnMusic && warnMusic.isPlaying()) {
+      warnMusic.stop();
+    }
+    
+    if (sirenSound && sirenSound.isPlaying()) {
+      sirenSound.stop();
+    }
+    // ADICIONAR ESTA LINHA - Limpar robôs:
+    robots = [];
   }
 
   function isFadeComplete() {
@@ -333,6 +606,8 @@ function level3(p5, sharedPlayer) {
     startFadeIn,
     setSecretItemCollected,
     isSecretItemCollected,
+    getEmergencyMode,    
+    setEmergencyMode,
     isFadeComplete,
     setFadeSpeed,
     setMusicFadeSpeed,

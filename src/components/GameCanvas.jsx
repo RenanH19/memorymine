@@ -243,8 +243,10 @@ function GameCanvas() {
       
       if (levelResult && levelResult.exit) {
         if (levelResult.destination === 'level3') {
+          level.stopLevel();
           // TRANSIÇÃO PARA LEVEL3
           level1ItemCollected = level.isItemCollected();
+          const emergencyActive = level.getEmergencyMode();
           console.log('Indo do Level 1 para Level 3');
           
           flagLevel1 = false;
@@ -261,7 +263,8 @@ function GameCanvas() {
           // RESTAURA o estado do item secreto
           level3Instance.startFadeIn();
           level3Instance.setSecretItemCollected(level3SecretItemCollected);
-          console.log('Entrando no Level 3');
+          level3Instance.setEmergencyMode(emergencyActive); // PASSAR O ESTADO DE EMERGÊNCIA
+          console.log('Entrando no Level 3 - Emergência mantida:', emergencyActive);
           
         } else {
           // VOLTA PARA O MUNDO
@@ -323,28 +326,30 @@ function GameCanvas() {
       }
     }
     if (flagLevel3) {
-    const levelResult = level3Instance.runLevel();
-    
-    if (levelResult && levelResult.exit) {
-      // SALVA o estado do item secreto antes de sair
-      level3SecretItemCollected = level3Instance.isSecretItemCollected();
-      console.log('Saindo do Level 3 - Item secreto salvo:', level3SecretItemCollected);
-      
-      flagLevel3 = false;
-      flagLevel1 = true; // VOLTA PARA O LEVEL1
-      
-      // RESTAURA CONFIGURAÇÕES DO LEVEL1
-      player.position.x = 540; // Próximo da área de acesso ao level3
-      player.position.y = 350;
-      player.targetPosition.x = 540;
-      player.targetPosition.y = 350;
-      player.mapSize = 800;
-      player.setCollisionMap('/assets/level/LabCollision.png');
-      
-      // RESTAURA o estado do level1
-      level.startFadeIn();
-      level.setItemCollected(level1ItemCollected);
-      console.log('Voltando para Level 1 do Level 3');
+  const levelResult = level3Instance.runLevel();
+  
+      if (levelResult && levelResult.exit) {
+        // SALVA o estado do item secreto antes de sair
+        level3SecretItemCollected = level3Instance.isSecretItemCollected();
+        const emergencyActive = level3Instance.getEmergencyMode(); // PEGAR ESTADO
+        console.log('Saindo do Level 3 - Item secreto salvo:', level3SecretItemCollected);
+        
+        flagLevel3 = false;
+        flagLevel1 = true;
+        
+        // RESTAURA CONFIGURAÇÕES DO LEVEL1
+        player.position.x = 540;
+        player.position.y = 350;
+        player.targetPosition.x = 540;
+        player.targetPosition.y = 350;
+        player.mapSize = 800;
+        player.setCollisionMap('/assets/level/LabCollision.png');
+        
+        // RESTAURA o estado do level1 COM emergência:
+        level.startFadeIn();
+        level.setItemCollected(level1ItemCollected);
+        level.setEmergencyMode(emergencyActive); // MANTER EMERGÊNCIA
+        console.log('Voltando para Level 1 do Level 3 - Emergência mantida:', emergencyActive);
       }
     }
   }
