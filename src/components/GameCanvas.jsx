@@ -2,6 +2,7 @@ import Sketch from 'react-p5';
 import 'p5/lib/addons/p5.sound';
 import level1 from '../p5/levels/levels/level1';
 import level2 from '../p5/levels/levels/level2';
+import level3 from '../p5/levels/levels/level3';
 import Player from '../p5/Player';
 import worldMapClass from '../p5/maps/worldMapClass';
 import mist from '../p5/maps/mist';
@@ -13,6 +14,14 @@ function GameCanvas() {
   let flagWorld = false;
   let flagLevel1 = false;
   let flagLevel2 = false;
+  
+  let flagLevel3 = false;
+  let level3Instance;
+  let xKeyPressedLevel3 = false;
+
+  // Adicionar estado persistente do level3:
+  let level3SecretItemCollected = false;
+
   let player; // PLAYER ÚNICO COMPARTILHADO
   let worldMap;
   let mistInstance;
@@ -85,6 +94,8 @@ function GameCanvas() {
     level.initializePlayer();
     level2Instance = level2(p5, player);
     level2Instance.loadLevel();
+    level3Instance = level3(p5, player);
+    level3Instance.loadLevel();
     
     // INICIA O TIMER DO SOM
     initializeSoundTimer();
@@ -207,7 +218,7 @@ function GameCanvas() {
       }
     }
     
-    if (flagWorld && !flagLevel1 && !flagLevel2) {
+    if (flagWorld && !flagLevel1 && !flagLevel2 && !flagLevel3) {
       // VERIFICA O SOM ESTRANHO E ATUALIZA O EFEITO
       checkWeirdSound(p5);
       updateFlashEffect(p5);
@@ -231,29 +242,52 @@ function GameCanvas() {
       const levelResult = level.runLevel();
       
       if (levelResult && levelResult.exit) {
-        // SALVA o estado do item antes de sair
-        level1ItemCollected = level.isItemCollected();
-        console.log('Saindo do Level 1 - Item salvo:', level1ItemCollected);
-        
-        flagLevel1 = false;
-        flagWorld = true;
-        
-        // RESTAURA CONFIGURAÇÕES DO MUNDO
-        player.position.x = worldPlayerPosition.x;
-        player.position.y = worldPlayerPosition.y;
-        player.targetPosition.x = worldPlayerPosition.x;
-        player.targetPosition.y = worldPlayerPosition.y;
-        player.mapSize = 1024;
-        player.setCollisionMap('/assets/worldMapColision.png'); // VOLTA PARA MAPA DO MUNDO
-        
-        // RESTAURA O DARKNESS ORIGINAL
-        darkness = originalDarkness;
-        if (mistInstance) {
-          mistInstance.updateDarkness(darkness);
-        }
-        
-        if (worldMap) {
-          worldMap.startFadeIn();
+        if (levelResult.destination === 'level3') {
+          // TRANSIÇÃO PARA LEVEL3
+          level1ItemCollected = level.isItemCollected();
+          console.log('Indo do Level 1 para Level 3');
+          
+          flagLevel1 = false;
+          flagLevel3 = true;
+          
+          // CONFIGURA PLAYER PARA O LEVEL3
+          player.position.x = 400;
+          player.position.y = 1240;
+          player.targetPosition.x = 400;
+          player.targetPosition.y = 1240;
+          player.mapSize = 1280;
+          player.setCollisionMap('/assets/level/secretRoomFinalCollision.png');
+
+          // RESTAURA o estado do item secreto
+          level3Instance.startFadeIn();
+          level3Instance.setSecretItemCollected(level3SecretItemCollected);
+          console.log('Entrando no Level 3');
+          
+        } else {
+          // VOLTA PARA O MUNDO
+          level1ItemCollected = level.isItemCollected();
+          console.log('Saindo do Level 1 - Item salvo:', level1ItemCollected);
+          
+          flagLevel1 = false;
+          flagWorld = true;
+          
+          // RESTAURA CONFIGURAÇÕES DO MUNDO
+          player.position.x = worldPlayerPosition.x;
+          player.position.y = worldPlayerPosition.y;
+          player.targetPosition.x = worldPlayerPosition.x;
+          player.targetPosition.y = worldPlayerPosition.y;
+          player.mapSize = 1024;
+          player.setCollisionMap('/assets/worldMapColision.png');
+          
+          // RESTAURA O DARKNESS ORIGINAL
+          darkness = originalDarkness;
+          if (mistInstance) {
+            mistInstance.updateDarkness(darkness);
+          }
+          
+          if (worldMap) {
+            worldMap.startFadeIn();
+          }
         }
       }
     }
@@ -286,6 +320,31 @@ function GameCanvas() {
         if (worldMap) {
           worldMap.startFadeIn();
         }
+      }
+    }
+    if (flagLevel3) {
+    const levelResult = level3Instance.runLevel();
+    
+    if (levelResult && levelResult.exit) {
+      // SALVA o estado do item secreto antes de sair
+      level3SecretItemCollected = level3Instance.isSecretItemCollected();
+      console.log('Saindo do Level 3 - Item secreto salvo:', level3SecretItemCollected);
+      
+      flagLevel3 = false;
+      flagLevel1 = true; // VOLTA PARA O LEVEL1
+      
+      // RESTAURA CONFIGURAÇÕES DO LEVEL1
+      player.position.x = 540; // Próximo da área de acesso ao level3
+      player.position.y = 350;
+      player.targetPosition.x = 540;
+      player.targetPosition.y = 350;
+      player.mapSize = 800;
+      player.setCollisionMap('/assets/level/LabCollision.png');
+      
+      // RESTAURA o estado do level1
+      level.startFadeIn();
+      level.setItemCollected(level1ItemCollected);
+      console.log('Voltando para Level 1 do Level 3');
       }
     }
   }

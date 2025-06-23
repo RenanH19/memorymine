@@ -50,6 +50,12 @@ function level1(p5, sharedPlayer) {
   let showKeyMessage = false;
   let systemMessageStep = 0; // 0: primeira mensagem, 1: segunda mensagem, 2: sistema ativo
 
+  // Variáveis para acesso ao level3
+  let level3Area = { x: 540, y: 350, radius: 40 }; // Área de acesso ao level3
+  let xKeyPressedForLevel3 = false;
+  let shouldEnterLevel3 = false;
+  let onSystemActivated = null; // Callback para quando o sistema for ativado
+
   function loadLevel() {
     // Carrega a imagem do level1 (escuro)
     levelImage = p5.loadImage('/assets/level/LabDark.png', () => {
@@ -116,7 +122,9 @@ function level1(p5, sharedPlayer) {
     isFadingIn = true;
     musicVolume = 0;
     shouldExit = false;
+    shouldEnterLevel3 = false;
     zKeyPressed = false;
+    xKeyPressedForLevel3 = false;
     xKeyPressedForItem = false;
     xKeyPressedForSystem = false;
     showSystemMessage = false;
@@ -143,6 +151,15 @@ function level1(p5, sharedPlayer) {
         mistInstance.updateDarkness(darknessLight);
         mistInstance.updateFadeMist(0); // Reseta a névoa para clarear
       }
+    }
+  }
+
+  function checkSystemBarrier() {
+    if (!isSystemActive && player.position.y < 370) {
+      // Força o player a voltar para y = 370
+      player.position.y = 370;
+      player.targetPosition.y = 370;
+      console.log('Área bloqueada - Sistema não ativado');
     }
   }
 
@@ -217,6 +234,11 @@ function level1(p5, sharedPlayer) {
           showSystemMessage = false;
           
           console.log('Sistema ativado! Laboratório iluminando...');
+
+          // ADICIONAR ESTA LINHA - Notifica que o sistema foi ativado
+          if (onSystemActivated) {
+            onSystemActivated();
+          }
           
           // Inicia a transição suave de escuridão
           darknessLight = 255; // Começa escuro
@@ -247,6 +269,114 @@ function level1(p5, sharedPlayer) {
         mistInstance.updateFadeMist(0); // Reseta a névoa para clarear
       }
     }
+  }
+
+  // ADICIONAR ESTA NOVA FUNÇÃO - Verifica acesso ao level3:
+  function checkLevel3Access() {
+    const distance = p5.dist(player.position.x, player.position.y, level3Area.x, level3Area.y);
+    const isInLevel3Area = distance < level3Area.radius;
+
+    if (p5.keyIsDown(88) && isInLevel3Area) { // Tecla X
+      if (!xKeyPressedForLevel3) {
+        xKeyPressedForLevel3 = true;
+
+        if (isSystemActive) {
+          shouldEnterLevel3 = true;
+          console.log('Entrando no Level 3...');
+          
+          if (music) {
+            music.stopMusic();
+          }
+        } else {
+          console.log('Área bloqueada. Sistema do laboratório não foi ativado.');
+        }
+      }
+    } else if (!p5.keyIsDown(88)) {
+      xKeyPressedForLevel3 = false;
+    }
+
+    return { 
+      shouldEnterLevel3, 
+      isInLevel3Area, 
+      hasAccess: isSystemActive 
+    };
+  }
+
+  // ADICIONAR ESTA NOVA FUNÇÃO - Desenha indicador do level3:
+  function drawLevel3AccessIndicator(hasAccess) {
+    p5.push();
+    p5.resetMatrix();
+    
+    const textBoxWidth = 600;
+    const textBoxHeight = 70;
+    const textBoxX = (p5.width - textBoxWidth) / 2;
+    const textBoxY = p5.height - textBoxHeight - 20;
+    
+    if (textBoxImage) {
+      p5.tint(255, 255, 255, 128);
+      p5.image(textBoxImage, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
+      p5.noTint();
+    } else {
+      p5.fill(0, 0, 0, 150);
+      p5.stroke(200, 200, 200);
+      p5.strokeWeight(2);
+      p5.rect(textBoxX, textBoxY, textBoxWidth, textBoxHeight, 10);
+    }
+    
+    p5.fill(255, 255, 255, 128);
+    p5.noStroke();
+    p5.textAlign(p5.CENTER, p5.CENTER);
+    p5.textSize(18);
+    p5.textStyle(p5.BOLD);
+    
+    if (hasAccess) {
+      p5.text("Pressione 'X' para entrar", p5.width / 2, textBoxY + textBoxHeight / 2);
+    } else {
+      p5.text("Área bloqueada - sem energia", p5.width / 2, textBoxY + textBoxHeight / 2);
+    }
+    
+    p5.pop();
+  }
+
+  // ADICIONAR ESTA NOVA FUNÇÃO - Desenha indicador visual da área level3:
+  function drawLevel3AreaIndicator() {
+    if (!isSystemActive) return; // Só mostra se o sistema foi ativado
+
+    p5.push();
+    
+    // Efeito de pulsação mais sutil
+    const pulseScale = 0.8 + Math.sin(p5.millis() * 0.008) * 0.3;
+    const pulseAlpha = 150 + Math.sin(p5.millis() * 0.006) * 100;
+    
+    p5.translate(level3Area.x, level3Area.y);
+    p5.scale(pulseScale);
+    
+    // Estrela pequena brilhante - ponto central
+    p5.fill(255, 255, 255, pulseAlpha);
+    p5.noStroke();
+    p5.ellipse(0, 0, 4, 4);
+    
+    // Raios da estrela
+    p5.stroke(0, 255, 255, pulseAlpha * 0.8);
+    p5.strokeWeight(1);
+    
+    // 4 raios principais (cruz)
+    p5.line(-6, 0, 6, 0);   // horizontal
+    p5.line(0, -6, 0, 6);   // vertical
+    p5.line(-4, -4, 4, 4);  // diagonal \
+    p5.line(-4, 4, 4, -4);  // diagonal /
+    
+    // Brilho sutil ao redor
+    p5.noStroke();
+    p5.fill(0, 255, 255, pulseAlpha * 0.3);
+    p5.ellipse(0, 0, 12, 12);
+    
+    p5.pop();
+  }
+
+  // ADICIONAR ESTA NOVA FUNÇÃO - Para registrar callback:
+  function setSystemActivatedCallback(callback) {
+    onSystemActivated = callback;
   }
 
   function checkItemCollection() {
@@ -470,10 +600,16 @@ function level1(p5, sharedPlayer) {
   }
 
   function runLevel() {
-    // Verifica saída
+  // Verifica saída
     const exitData = checkExitArea();
     if (exitData.shouldExit) {
-      return { exit: true };
+      return { exit: true, destination: 'world' }; // ESPECIFICAR DESTINO EXPLÍCITO
+    }
+
+      // MODIFICAR ESTA PARTE - Verifica acesso ao level3:
+    const level3Data = checkLevel3Access();
+      if (level3Data.shouldEnterLevel3) {
+      return { exit: true, destination: 'level3' }; // MANTER O DESTINATION
     }
 
     // Verifica coleta do item
@@ -506,11 +642,15 @@ function level1(p5, sharedPlayer) {
     // Desenha o item (antes do player)
     drawItem();
 
+    // ADICIONAR ESTA LINHA - Desenha o indicador da área do level3:
+    drawLevel3AreaIndicator();
+
     // Atualiza e desenha o player
     player.getPlayerSprites();
     player.update();
     player.display();
 
+    checkSystemBarrier();
     // Desenha objetos por cima (se existir)
     if (isSystemActive) {
       if (labLightFront) {
@@ -541,8 +681,10 @@ function level1(p5, sharedPlayer) {
     p5.resetMatrix();
 
     // Desenha indicadores
-    if (exitData.isInExitArea) {
+      if (exitData.isInExitArea) {
       drawExitIndicator();
+    } else if (level3Data.isInLevel3Area) {
+      drawLevel3AccessIndicator(level3Data.hasAccess);
     } else if (isNearSystem && (showSystemMessage || (systemMessageStep === 2 && !isSystemActive))) {
       if (systemMessageStep === 2) {
         // Mostra mensagem especial quando deve usar o inventário
@@ -551,6 +693,7 @@ function level1(p5, sharedPlayer) {
       } else {
         drawSystemIndicator();
       }
+
     } else if (isNearItem && !itemCollected) {
       drawItemIndicator();
     }
@@ -648,6 +791,7 @@ function level1(p5, sharedPlayer) {
     getSystemActive,
     setSystemProgress,
     getSystemProgress,
+    setSystemActivatedCallback,
     isFadeComplete,
     setFadeSpeed,
     setMusicFadeSpeed,
