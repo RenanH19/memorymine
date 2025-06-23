@@ -1,5 +1,6 @@
 import MusicManager from "../../audio/MusicManager";
 import Robot from "../../Robot";
+import GameOverSequence from "../../GameOverSequence";
 
 function level3(p5, sharedPlayer) {
   let player = sharedPlayer; // USA O PLAYER COMPARTILHADO
@@ -66,6 +67,12 @@ function level3(p5, sharedPlayer) {
     ]
   };
 
+  // ADICIONAR ESTAS VARIÁVEIS:
+  let gameOverSequence = null;
+  let terminalArea = { x: 420, y: 170, radius: 30 }; // Área do terminal
+  let xKeyPressedForTerminal = false;
+  let isGameOverActive = false;
+
   function loadLevel() {
 
     // ADICIONAR ESTAS LINHAS - Carrega a música de alerta:
@@ -111,9 +118,95 @@ function level3(p5, sharedPlayer) {
     
     initializeRobotSystem();
 
+    gameOverSequence = GameOverSequence(p5);
+    gameOverSequence.loadAssets();
+
     music.loadMusic();
 
   }
+
+  function checkTerminalInteraction() {
+    const distance = p5.dist(player.position.x, player.position.y, terminalArea.x, terminalArea.y);
+    const isInTerminalArea = distance < terminalArea.radius;
+
+    if (p5.keyIsDown(88) && isInTerminalArea) { // Tecla X
+      if (!xKeyPressedForTerminal) {
+        xKeyPressedForTerminal = true;
+        
+        console.log('🔇 PARANDO TODOS OS SONS DO LEVEL3...');
+        
+        // Para música normal
+        if (music) {
+          music.stopMusic();
+          console.log('🔇 Música normal parada');
+        }
+        
+        // Para música de emergência
+        if (warnMusic && warnMusic.isPlaying()) {
+          warnMusic.stop();
+          console.log('🔇 Música de alerta parada');
+        }
+        
+        // Para sirene
+        if (sirenSound && sirenSound.isPlaying()) {
+          sirenSound.stop();
+          console.log('🔇 Sirene parada');
+        }
+        
+        // FORÇAR parada - tentar múltiplas vezes
+        setTimeout(() => {
+          if (warnMusic && warnMusic.isPlaying()) {
+            warnMusic.stop();
+            console.log('🔇 Música de alerta parada (segunda tentativa)');
+          }
+          
+          if (sirenSound && sirenSound.isPlaying()) {
+            sirenSound.stop();
+            console.log('🔇 Sirene parada (segunda tentativa)');
+          }
+        }, 100);
+        
+        // Inicia a sequência de Game Over
+        isGameOverActive = true;
+        gameOverSequence.start(); // Isso vai iniciar a música de ending
+        
+        console.log('Terminal ativado! Iniciando sequência de Game Over...');
+      }
+    } else if (!p5.keyIsDown(88)) {
+      xKeyPressedForTerminal = false;
+    }
+
+    return isInTerminalArea;
+  }
+
+  function drawTerminalIndicator() {
+    p5.push();
+    p5.resetMatrix();
+    
+    const textBoxWidth = 600;
+    const textBoxHeight = 70;
+    const textBoxX = (p5.width - textBoxWidth) / 2;
+    const textBoxY = p5.height - textBoxHeight - 20;
+    
+    if (textBoxImage) {
+      p5.image(textBoxImage, textBoxX, textBoxY, textBoxWidth, textBoxHeight);
+    } else {
+      p5.fill(0, 0, 0, 150);
+      p5.stroke(200, 200, 200);
+      p5.strokeWeight(2);
+      p5.rect(textBoxX, textBoxY, textBoxWidth, textBoxHeight, 10);
+    }
+    
+    p5.fill(255, 255, 255);
+    p5.noStroke();
+    p5.textAlign(p5.CENTER, p5.CENTER);
+    p5.textSize(18);
+    p5.textStyle(p5.BOLD);
+    p5.text("Pressione 'X' para acessar terminal", p5.width / 2, textBoxY + textBoxHeight / 2);
+    
+    p5.pop();
+  }
+
     // ADICIONAR ESTA NOVA FUNÇÃO - Inicializar sistema de robôs:
   function initializeRobotSystem() {
     robots = []; // Limpa array existente
@@ -417,98 +510,97 @@ function level3(p5, sharedPlayer) {
   }
 
   function runLevel() {
-    // Verifica saída
-    const exitData = checkExitArea();
-    if (exitData.shouldExit) {
-      return { exit: true };
+  // VERIFICAR GAME OVER SEQUENCE PRIMEIRO:
+  if (isGameOverActive) {
+    const sequenceComplete = gameOverSequence.update();
+    gameOverSequence.display();
+    
+    if (sequenceComplete) {
+      // Sequência terminou - retorna game over
+      return { 
+        exit: true, 
+        gameOver: true,
+        reason: 'megalus_day'
+      };
     }
+    
+    // Enquanto sequência roda, não processa mais nada
+    return { exit: false, gameOver: false };
+  }
 
-      // ADICIONAR ESTAS LINHAS - Sistema de robôs:
-    updateRobotSpawning();
-    updateRobots();
-    cleanupRobots();
+  // Verifica saída normal
+  const exitData = checkExitArea();
+  if (exitData.shouldExit) {
+    return { exit: true, gameOver: false };
+  }
 
-    // Verifica interação com item secreto
-    const isNearSecret = checkSecretInteraction();
+  // Sistema de robôs:
+  updateRobotSpawning();
+  updateRobots();
+  cleanupRobots();
 
-    // Controle da câmera
-    cameraX = p5.constrain(player.position.x - p5.width/2, 0, Math.max(0, levelWidth - p5.width));
-    cameraY = p5.constrain(player.position.y - p5.height/2, 0, Math.max(0, levelHeight - p5.height));
+  // Verificar interação com terminal:
+  const isNearTerminal = checkTerminalInteraction();
 
-    // Aplica transformação da câmera
-    p5.translate(-cameraX, -cameraY);
+  // Verifica interação com item secreto
+  const isNearSecret = checkSecretInteraction();
 
-    // Desenha o mapa de fundo
-    if (levelImage) {
-      p5.image(levelImage, 0, 0, levelWidth, levelHeight);
-    } else {
-      p5.background(20, 20, 40); // Fundo escuro para level3
-    }
+  // Controle da câmera
+  cameraX = p5.constrain(player.position.x - p5.width/2, 0, Math.max(0, levelWidth - p5.width));
+  cameraY = p5.constrain(player.position.y - p5.height/2, 0, Math.max(0, levelHeight - p5.height));
 
-    // Desenha o item secreto (antes do player)
-    drawSecretItem();
+  // Aplica transformação da câmera
+  p5.translate(-cameraX, -cameraY);
 
-    // Atualiza e desenha o player
-    player.getPlayerSprites();
-    player.update();
-    player.display();
+  // Desenha o mapa de fundo
+  if (levelImage) {
+    p5.image(levelImage, 0, 0, levelWidth, levelHeight);
+  } else {
+    p5.background(20, 20, 40);
+  }
 
-    // ADICIONAR ESTA LINHA - Desenhar robôs após o player:
-    drawRobots();
+  // Desenha o item secreto (antes do player)
+  drawSecretItem();
 
-    // Desenha objetos por cima (se existir)
-    if (frontImage) {
-      p5.image(frontImage, 0, 0, levelWidth, levelHeight);
-    }
+  // Atualiza e desenha o player
+  player.getPlayerSprites();
+  player.update();
+  player.display();
 
-    // Fade in da música
-    if (isEmergencyMode) {
-      // Garante que os sons de emergência continuem tocando
-      if (warnMusic && !warnMusic.isPlaying()) {
-        warnMusic.loop();
-        warnMusic.setVolume(0.1);
-      }
-      
-      if (sirenSound && !sirenSound.isPlaying()) {
-        sirenSound.play();
-        sirenSound.setVolume(0.3);
-      }
-    } else {
-      // Só toca música normal se NÃO estiver em modo de emergência
-      if (musicVolume < targetMusicVolume) {
-        musicVolume = p5.lerp(musicVolume, targetMusicVolume, musicFadeSpeed);
-      }
-      
-      music.playMusic();
-      music.setVolume(musicVolume);
-    }
+  // Desenhar robôs após o player:
+  drawRobots();
 
-    // Reset da transformação para UI
-    p5.resetMatrix();
+  // Desenha objetos por cima (se existir)
+  if (frontImage) {
+    p5.image(frontImage, 0, 0, levelWidth, levelHeight);
+  }
 
+  // Fade in da música
   if (isEmergencyMode) {
-      // Atualiza a pulsação do alarme vermelho
-      redAlarmAlpha += redAlarmSpeed * redAlarmDirection;
-      
-      // Inverte a direção quando atinge os limites
-      if (redAlarmAlpha >= maxRedAlarmAlpha) {
-        redAlarmAlpha = maxRedAlarmAlpha;
-        redAlarmDirection = -1;
-      } else if (redAlarmAlpha <= 10) {
-        redAlarmAlpha = 10;
-        redAlarmDirection = 1;
-      }
-      
-      // Desenha overlay vermelho pulsante
-      p5.fill(255, 0, 0, redAlarmAlpha); // Vermelho com transparência
-      p5.rect(0, 0, p5.width, p5.height);
-    } else {
-      // Reset do alarme quando não está em emergência
-      redAlarmAlpha = 0;
-      redAlarmDirection = 1;
+    // Garante que os sons de emergência continuem tocando
+    if (warnMusic && !warnMusic.isPlaying()) {
+      warnMusic.loop();
+      warnMusic.setVolume(0.1);
     }
+    
+    if (sirenSound && !sirenSound.isPlaying()) {
+      sirenSound.play();
+      sirenSound.setVolume(0.3);
+    }
+  } else {
+    // Só toca música normal se NÃO estiver em modo de emergência
+    if (musicVolume < targetMusicVolume) {
+      musicVolume = p5.lerp(musicVolume, targetMusicVolume, musicFadeSpeed);
+    }
+    
+    music.playMusic();
+    music.setVolume(musicVolume);
+  }
 
-    // ADICIONAR ESTA PARTE - Efeito de alarme vermelho:
+  // Reset da transformação para UI
+  p5.resetMatrix();
+
+  // Efeito de alarme vermelho:
   if (isEmergencyMode) {
     // Atualiza a pulsação do alarme vermelho
     redAlarmAlpha += redAlarmSpeed * redAlarmDirection;
@@ -523,7 +615,7 @@ function level3(p5, sharedPlayer) {
     }
     
     // Desenha overlay vermelho pulsante
-    p5.fill(255, 0, 0, redAlarmAlpha); // Vermelho com transparência
+    p5.fill(255, 0, 0, redAlarmAlpha);
     p5.rect(0, 0, p5.width, p5.height);
   } else {
     // Reset do alarme quando não está em emergência
@@ -531,38 +623,33 @@ function level3(p5, sharedPlayer) {
     redAlarmDirection = 1;
   }
 
-  // Desenha indicadores (prioridade: saída > item secreto)
-  if (exitData.isInExitArea) {
+  // Desenha indicadores (prioridade: terminal > saída > item secreto):
+  if (isNearTerminal && !isGameOverActive) {
+    drawTerminalIndicator();
+  } else if (exitData.isInExitArea) {
     drawExitIndicator();
   } else if (isNearSecret && !secretItemCollected) {
     drawSecretIndicator();
   }
 
-    // Desenha indicadores (prioridade: saída > item secreto)
-    if (exitData.isInExitArea) {
-      drawExitIndicator();
-    } else if (isNearSecret && !secretItemCollected) {
-      drawSecretIndicator();
+  // Desenha o inventário
+  player.displayInventory();
+
+  // Fade in visual
+  if (isFadingIn) {
+    fadeInAlpha -= fadeInSpeed;
+    
+    if (fadeInAlpha <= 0) {
+      fadeInAlpha = 0;
+      isFadingIn = false;
     }
-
-    // Desenha o inventário
-    player.displayInventory();
-
-    // Fade in visual
-    if (isFadingIn) {
-      fadeInAlpha -= fadeInSpeed;
-      
-      if (fadeInAlpha <= 0) {
-        fadeInAlpha = 0;
-        isFadingIn = false;
-      }
-      
-      p5.fill(0, fadeInAlpha);
-      p5.rect(0, 0, p5.width, p5.height);
-    }
-
-    return { exit: false };
+    
+    p5.fill(0, fadeInAlpha);
+    p5.rect(0, 0, p5.width, p5.height);
   }
+
+  return { exit: false, gameOver: false };
+}
 
   function stopLevel() {
     if (music) {
@@ -576,6 +663,11 @@ function level3(p5, sharedPlayer) {
     
     if (sirenSound && sirenSound.isPlaying()) {
       sirenSound.stop();
+    }
+
+      // ADICIONAR ESTA LINHA - Para a sequência de Game Over se estiver ativa:
+    if (gameOverSequence && gameOverSequence.isSequenceActive()) {
+      gameOverSequence.stop();
     }
     // ADICIONAR ESTA LINHA - Limpar robôs:
     robots = [];

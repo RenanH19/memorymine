@@ -325,31 +325,103 @@ function GameCanvas() {
         }
       }
     }
+    
     if (flagLevel3) {
-  const levelResult = level3Instance.runLevel();
-  
-      if (levelResult && levelResult.exit) {
-        // SALVA o estado do item secreto antes de sair
-        level3SecretItemCollected = level3Instance.isSecretItemCollected();
-        const emergencyActive = level3Instance.getEmergencyMode(); // PEGAR ESTADO
-        console.log('Saindo do Level 3 - Item secreto salvo:', level3SecretItemCollected);
+      try {
+        const levelResult = level3Instance.runLevel();
         
+        if (levelResult && levelResult.exit) {
+          
+          // VERIFICAR SE É GAME OVER:
+          if (levelResult.gameOver) {
+            console.log('🔥 GAME OVER detectado! Motivo:', levelResult.reason);
+            
+            if (levelResult.reason === 'megalus_day') {
+              console.log('💥 DIA DE MEGALUS - Fim do jogo por terminal');
+            } else {
+              console.log('💀 Player morreu no Level3');
+            }
+            
+            // Para o level3
+            level3Instance.stopLevel();
+            
+            // Reset do player para vida completa
+            if (player.resetPlayer) {
+              player.resetPlayer();
+            }
+            
+            // VOLTA PARA O MENU INICIAL
+            flagLevel3 = false;
+            flagWorld = false;
+            flagLevel1 = false;
+            flagLevel2 = false;
+            gameStarted = false;
+            isTransitioning = false;
+            
+            // Reset de estados do jogo
+            level3SecretItemCollected = false;
+            level1ItemCollected = false;
+            level2KeyCollected = false;
+            
+            // Reset da posição do player no mundo
+            worldPlayerPosition = { x: 300, y: 400 };
+            
+            // Reset dos sons e efeitos
+            if (weirdSound && weirdSound.isPlaying()) {
+              weirdSound.stop();
+            }
+            isSoundPlaying = false;
+            isFlashEffect = false;
+            darkness = originalDarkness;
+            initializeSoundTimer();
+            
+            console.log('Game Over processado - Voltando ao menu principal');
+            
+          } else {
+            // SAÍDA NORMAL (não é game over):
+            level3SecretItemCollected = level3Instance.isSecretItemCollected();
+            const emergencyActive = level3Instance.getEmergencyMode();
+            console.log('Saindo do Level 3 - Item secreto salvo:', level3SecretItemCollected);
+            
+            flagLevel3 = false;
+            flagLevel1 = true;
+            
+            // RESTAURA CONFIGURAÇÕES DO LEVEL1
+            player.position.x = 540;
+            player.position.y = 350;
+            player.targetPosition.x = 540;
+            player.targetPosition.y = 350;
+            player.mapSize = 800;
+            player.setCollisionMap('/assets/level/LabCollision.png');
+            
+            // RESTAURA o estado do level1 COM emergência:
+            level.startFadeIn();
+            level.setItemCollected(level1ItemCollected);
+            level.setEmergencyMode(emergencyActive);
+            console.log('Voltando para Level 1 do Level 3 - Emergência mantida:', emergencyActive);
+          }
+        }
+        
+      } catch (error) {
+        console.error('ERRO no Level3:', error);
+        
+        // Em caso de erro, volta ao menu
         flagLevel3 = false;
-        flagLevel1 = true;
-        
-        // RESTAURA CONFIGURAÇÕES DO LEVEL1
-        player.position.x = 540;
-        player.position.y = 350;
-        player.targetPosition.x = 540;
-        player.targetPosition.y = 350;
-        player.mapSize = 800;
-        player.setCollisionMap('/assets/level/LabCollision.png');
-        
-        // RESTAURA o estado do level1 COM emergência:
-        level.startFadeIn();
-        level.setItemCollected(level1ItemCollected);
-        level.setEmergencyMode(emergencyActive); // MANTER EMERGÊNCIA
-        console.log('Voltando para Level 1 do Level 3 - Emergência mantida:', emergencyActive);
+        flagWorld = false;
+        flagLevel1 = false;
+        flagLevel2 = false;
+        gameStarted = false;
+        isTransitioning = false;
+      }
+    }
+
+    // FALLBACK - Se todas as flags estão false e o jogo começou
+    if (gameStarted && !flagWorld && !flagLevel1 && !flagLevel2 && !flagLevel3 && !isTransitioning) {
+      console.log('FALLBACK: Ativando mundo por segurança');
+      flagWorld = true;
+      
+      if (worldMap) {
+        worldMap.startFadeIn();
       }
     }
   }
