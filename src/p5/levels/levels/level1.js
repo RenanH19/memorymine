@@ -37,7 +37,7 @@ function level1(p5, sharedPlayer) {
   let itemBoxImage = null;
 
   // Variáveis para item coletável
-  let itemArea = { x: 400, y: 500, radius: 30 }; // Posição do item no mapa
+  let itemArea = { x: 280, y: 400, radius: 30 }; // Posição do item no mapa
   let itemImage = null;
   let itemSound = null;
   let itemCollected = false;
@@ -166,30 +166,24 @@ function level1(p5, sharedPlayer) {
             systemMessageStep = 1;
             console.log('Primeira mensagem mostrada');
           } else if (systemMessageStep === 1) {
-            // Segunda mensagem: verifica se tem a chave
+            // Segunda mensagem: abre o inventário para usar a chave
             showSystemMessage = false;
-
-            // Verifica se tem chave no inventário
-            const hasKey = player.hasItem('key') || player.hasItem('book') || player.hasItem('Livro Antigo');
-
-            if (hasKey) {
-              // Tem a chave, ativa o sistema
-              isSystemActive = true;
-              systemMessageStep = 3;
-              showKeyMessage = false;
-              
-              console.log('Sistema ativado! Laboratório iluminando...');
-              
-              // Inicia a transição suave de escuridão
-              darknessLight = 255; // Começa escuro
-            } else {
-              // Não tem a chave
-              showKeyMessage = true;
-              systemMessageStep = 2;
-            }
-          } else if (systemMessageStep === 2) {
-            // Reset para voltar ao início se não tem chave
             showKeyMessage = false;
+            
+            // Abre o inventário do player
+            if (!player.isInventoryOpen() && !player.isLifeInventoryOpen()) {
+              player.inventoryVisible = true;
+              console.log('Inventário aberto para usar a chave no sistema');
+              
+              // Toca o som de abrir inventário se disponível
+              if (player.navInventorySound) {
+                player.navInventorySound.play();
+              }
+            }
+            
+            systemMessageStep = 2; // Marca que mostrou a segunda parte
+          } else if (systemMessageStep === 2) {
+            // Reset para voltar ao início se ainda não ativou o sistema
             systemMessageStep = 0;
           }
         }
@@ -202,8 +196,41 @@ function level1(p5, sharedPlayer) {
       showKeyMessage = false;
     }
 
-    return isInSystemArea;
-  }
+      return isInSystemArea;
+    }
+
+    // Nova função para verificar se o sistema deve ser ativado quando usa um item
+    function checkSystemActivation() {
+      // Verifica se o player está na área do sistema e se tem uma chave sendo usada
+      const distance = p5.dist(player.position.x, player.position.y, systemArea.x, systemArea.y);
+      const isInSystemArea = distance < systemArea.radius;
+      
+      if (isInSystemArea && systemMessageStep >= 1 && !isSystemActive) {
+        // Verifica se o player tem e está usando uma chave
+        const hasKey = player.hasItem('key') || player.hasItem('book') || player.hasItem('Livro Antigo');
+        
+        if (hasKey) {
+          // Ativa o sistema
+          isSystemActive = true;
+          systemMessageStep = 3;
+          showKeyMessage = false;
+          showSystemMessage = false;
+          
+          console.log('Sistema ativado! Laboratório iluminando...');
+          
+          // Inicia a transição suave de escuridão
+          darknessLight = 255; // Começa escuro
+          
+          // Fecha o inventário automaticamente
+          player.inventoryVisible = false;
+          player.lifeInventoryVisible = false;
+          
+          return true;
+        }
+      }
+      
+      return false;
+    }
 
    function updateSystemTransition() {
     if (isSystemActive && darknessLight > 0) {
@@ -280,6 +307,7 @@ function level1(p5, sharedPlayer) {
     p5.pop();
   }
 
+  // Modifica a função drawSystemIndicator para mostrar uma mensagem diferente
   function drawSystemIndicator() {
     if (!showSystemMessage && !showKeyMessage) return;
 
@@ -309,11 +337,11 @@ function level1(p5, sharedPlayer) {
     if (showSystemMessage) {
       p5.text("Sistema fora de operação", p5.width / 2, textBoxY + textBoxHeight / 2);
     } else if (showKeyMessage) {
-      p5.text("Necessário chaves", p5.width / 2, textBoxY + textBoxHeight / 2);
+      p5.text("Use uma chave do inventário para ativar", p5.width / 2, textBoxY + textBoxHeight / 2);
     }
     
-    p5.pop();
-  }
+      p5.pop();
+    }
 
   function drawSystemArea() {
     if (isSystemActive) return; // Não desenha se já estiver ativo
@@ -326,18 +354,12 @@ function level1(p5, sharedPlayer) {
     p5.translate(systemArea.x, systemArea.y);
     p5.scale(pulseScale);
     
-    // Círculo indicativo
-    p5.fill(100, 100, 255, 80); // Azul translúcido
-    p5.stroke(100, 100, 255, 150);
-    p5.strokeWeight(2);
-    p5.ellipse(0, 0, systemArea.radius * 2, systemArea.radius * 2);
-    
     // Ícone do sistema (opcional)
     p5.fill(255, 255, 255, 200);
     p5.noStroke();
     p5.textAlign(p5.CENTER, p5.CENTER);
     p5.textSize(16);
-    p5.text("⚡", 0, 0);
+    p5.text("⚡", 0, 10);
     
     p5.pop();
   }
@@ -462,25 +484,13 @@ function level1(p5, sharedPlayer) {
 
     // Atualiza transição do sistema
     updateSystemTransition();
+    
     // Controle da câmera
     cameraX = p5.constrain(player.position.x - p5.width/2, 0, Math.max(0, levelWidth - p5.width));
     cameraY = p5.constrain(player.position.y - p5.height/2, 0, Math.max(0, levelHeight - p5.height));
 
     // Aplica transformação da câmera
     p5.translate(-cameraX, -cameraY);
-
-    // Desenha a área do sistema (se não estiver ativo)
-    drawSystemArea();
-
-    // Desenha o item (antes do player)
-    drawItem();
-
-    // Desenha o mapa de fundo
-    if (levelImage) {
-      p5.image(levelImage, 0, 0, levelWidth, levelHeight);
-    } else {
-      p5.background(40, 40, 60);
-    }
 
     // Desenha o mapa de fundo (escolhe entre escuro e claro)
     const currentLevelImage = isSystemActive ? levelImageLight : levelImage;
@@ -489,6 +499,9 @@ function level1(p5, sharedPlayer) {
     } else {
       p5.background(40, 40, 60);
     }
+
+    // Desenha a área do sistema (se não estiver ativo)
+    drawSystemArea();
 
     // Desenha o item (antes do player)
     drawItem();
@@ -499,11 +512,14 @@ function level1(p5, sharedPlayer) {
     player.display();
 
     // Desenha objetos por cima (se existir)
-    if (labFront) {
-      p5.image(labFront, 0, 0, levelWidth, levelHeight);
-    }
-    if (labLightFront && isSystemActive) {
-      p5.image(labLightFront, 0, 0, levelWidth, levelHeight);
+    if (isSystemActive) {
+      if (labLightFront) {
+        p5.image(labLightFront, 0, 0, levelWidth, levelHeight);
+      }
+    } else {
+      if (labFront) {
+        p5.image(labFront, 0, 0, levelWidth, levelHeight);
+      }
     }
 
     // Fade in da música
@@ -527,11 +543,20 @@ function level1(p5, sharedPlayer) {
     // Desenha indicadores
     if (exitData.isInExitArea) {
       drawExitIndicator();
-    } else if (isNearSystem) {
-      drawSystemIndicator();
+    } else if (isNearSystem && (showSystemMessage || (systemMessageStep === 2 && !isSystemActive))) {
+      if (systemMessageStep === 2) {
+        // Mostra mensagem especial quando deve usar o inventário
+        showKeyMessage = true;
+        drawSystemIndicator();
+      } else {
+        drawSystemIndicator();
+      }
     } else if (isNearItem && !itemCollected) {
       drawItemIndicator();
     }
+
+    // Desenha o itemBox no canto da tela quando perto do sistema
+    drawItemBoxIndicator(isNearSystem);
 
     // Desenha o inventário
     player.displayInventory();
@@ -550,6 +575,26 @@ function level1(p5, sharedPlayer) {
     }
 
     return { exit: false };
+  }
+
+  function initializePlayer() {
+    // Registra o callback para quando uma chave for usada
+    player.setKeyUsedCallback((item) => {
+      console.log('Player usou um item:', item);
+      
+      // Verifica se é uma chave/livro e se está na área do sistema
+      if ((item.type === 'key' || item.type === 'book') && systemMessageStep >= 2) {
+        const distance = p5.dist(player.position.x, player.position.y, systemArea.x, systemArea.y);
+        const isInSystemArea = distance < systemArea.radius;
+        
+        if (isInSystemArea) {
+          console.log('Chave usada na área do sistema! Ativando...');
+          checkSystemActivation();
+        } else {
+          console.log('Chave usada fora da área do sistema');
+        }
+      }
+    });
   }
 
   function stopLevel() {
@@ -596,6 +641,7 @@ function level1(p5, sharedPlayer) {
     runLevel,
     stopLevel,
     startFadeIn,
+    initializePlayer,
     setItemCollected,
     isItemCollected,
     setSystemActive,

@@ -380,7 +380,8 @@ class Player{
     return false;
   }
 
- useItem(slotIndex) {
+ // Modifique o método useItem para chamar o callback:
+  useItem(slotIndex) {
     if (this.inventory[slotIndex] !== null) {
       const item = this.inventory[slotIndex];
       console.log(`Usando item do slot ${slotIndex}:`, item);
@@ -388,6 +389,12 @@ class Player{
       // Lógica específica para cada tipo de item
       if (item.type === 'key' || item.type === 'book') {
         console.log(`Chave/Livro usado: ${item.name}`);
+        
+        // Notifica que uma chave foi usada (pode ser usado pelos levels)
+        if (this.onKeyUsed) {
+          this.onKeyUsed(item);
+        }
+        
         // Para chaves, normalmente não removemos do inventário
         // A menos que seja uma chave de uso único
         if (item.consumable) {
@@ -900,6 +907,15 @@ class Player{
     this.lifeBarManager.addLife(amount);
     console.log(`Cura recebida: ${amount}. Vida atual: ${this.lifeBarManager.getCurrentLife()}`);
   }
+
+  setKeyUsedCallback(callback) {
+    this.onKeyUsed = callback;
+  }
+
+  // Adicione este método na classe Player se ainda não existir:
+  setKeyUsedCallback(callback) {
+    this.onKeyUsed = callback;
+}
 }
 
 export default Player;

@@ -82,6 +82,7 @@ function GameCanvas() {
     // PASSA O MESMO PLAYER PARA AMBOS OS LEVELS
     level = level1(p5, player);
     level.loadLevel();
+    level.initializePlayer();
     level2Instance = level2(p5, player);
     level2Instance.loadLevel();
     
