@@ -1,12 +1,12 @@
 // Substitua TODO o conteúdo do Robot.js:
 
 class Robot {
-  constructor(p5, x, y, mapSize = 800) {
+  constructor(p5, x, y, mapSize = 1200) {
     this.p5 = p5;
     this.position = { x: x, y: y };
     this.targetPosition = { x: x, y: y };
     this.mapSize = mapSize;
-    this.speed = 4;
+    this.speed = 2;
     
     this.currentDirection = 'down';
     this.isMoving = false;
@@ -14,7 +14,7 @@ class Robot {
     this.health = 100;
     
     // Sistema de seguimento
-    this.followRange = 500;
+    this.followRange = 300;
     this.attackRange = 25;
     this.lastAttackTime = 0;
     this.attackCooldown = 1000;
@@ -100,21 +100,6 @@ class Robot {
       // DESENHA A IMAGEM DIRETAMENTE - pega apenas o primeiro sprite (64x64)
       this.p5.image(this.robotImage, this.position.x, this.position.y, 64, 64, 0, 0, 64, 64);
       console.log('🤖 Robot imagem desenhada na posição:', this.position.x, this.position.y);
-    } else {
-      // FALLBACK - Círculo azul GRANDE
-      this.p5.fill(0, 100, 255); // Azul
-      this.p5.stroke(255, 255, 255);
-      this.p5.strokeWeight(4);
-      this.p5.ellipse(this.position.x + 32, this.position.y + 32, 60, 60);
-      
-      // Texto
-      this.p5.fill(255, 255, 255);
-      this.p5.noStroke();
-      this.p5.textAlign(this.p5.CENTER, this.p5.CENTER);
-      this.p5.textSize(14);
-      this.p5.text('ROBÔ', this.position.x + 32, this.position.y + 32);
-      
-      console.log('🤖 Fallback: Círculo azul desenhado. Imagem carregada:', this.imageLoaded);
     }
     
     this.p5.pop();

@@ -142,8 +142,8 @@ function level3(p5, sharedPlayer) {
       }, 200);
       
       robot.setCollisionMap('/assets/sprites/player/secretRoomRoboCollision.png');
-      robot.setSpeed(1.2);
-      robot.setFollowRange(300);
+      robot.setSpeed(7);
+      robot.setFollowRange(700);
       robot.setAttackRange(35);
       
       robots.push(robot);

@@ -970,6 +970,32 @@ class Player{
       this.p5.image(sprites[this.spriteSelected], this.position.x, this.position.y, this.size, this.size);
     }
   }
+  // Adicione este método no Player.js:
+  isDead() {
+    return this.isDead;
+  }
+
+  // Adicione este método no Player.js:
+  getHealth() {
+    return this.health;
+  }
+
+  // Adicione este método no Player.js:
+  heal(amount) {
+    if (this.isDead) return;
+    
+    this.health = Math.min(this.health + amount, this.maxHealth);
+    console.log(`Player curado em ${amount}. Vida: ${this.health}/${this.maxHealth}`);
+  }
+
+    // Adicione este método no Player.js:
+  resetPlayer() {
+    this.health = this.maxHealth;
+    this.isDead = false;
+    console.log('Player resetado para vida completa');
+  }
+
+
 
   positionPlayer(){
     return this.position;
