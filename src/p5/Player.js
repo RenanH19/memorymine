@@ -55,17 +55,45 @@ class Player{
     // Sistema de vida
     this.lifeBarManager = new LifeBarManager(this.p5);
 
+    // Sistema de confirmação de uso de item (ADICIONADO)
+    this.showItemConfirmation = false;
+    this.itemTextImage = null;
+    this.confirmationSlot = -1;
+    this.confirmationInventoryType = null; // 'normal' ou 'life'
+    this.selectedUseOption = 0; // 0: Usar, 1: Cancelar
+    this.useOptions = ['Usar', 'Cancelar'];
+
     // Controle de teclas para evitar múltiplas ativações
     this.eKeyPressed = false;
     this.leftKeyPressed = false;
     this.rightKeyPressed = false;
     this.xKeyPressed = false;
-    this.lKeyPressed = false; // Nova tecla para alternar entre inventários
+    this.lKeyPressed = false;
+    this.upKeyPressed = false;
+    this.downKeyPressed = false;
   }
 
   loadPlayer(){
     this.spriteLoader.loadSprites();
     this.collisionMap.preload(); // Carrega o mapa de colisão
+
+    this.useItemSound = this.p5.loadSound('/assets/sounds/useItem.mp3', () => {
+    console.log('UseItem sound loaded successfully');
+    }, (error) => {
+    console.error('Failed to load useItem sound:', error);
+    });
+
+    this.navInventorySound = this.p5.loadSound('/assets/sounds/navInventory.mp3', () => {
+    console.log('NavInventory sound loaded successfully');
+    }, (error) => {
+    console.error('Failed to load navInventory sound:', error);
+    });
+
+    this.leaveInventorySound = this.p5.loadSound('/assets/sounds/leaveInventory.mp3', () => {
+    console.log('LeaveInventory sound loaded successfully');
+    }, (error) => {
+    console.error('Failed to load leaveInventory sound:', error);
+    });
     
     // Carrega a imagem do inventário normal
     this.inventoryImage = this.p5.loadImage('/assets/sprites/player/inventory.png', () => {
@@ -86,6 +114,13 @@ class Player{
       console.log('ItemBox image loaded successfully');
     }, (error) => {
       console.error('Failed to load itemBox image:', error);
+    });
+
+    // Carrega a imagem de confirmação de item
+    this.itemTextImage = this.p5.loadImage('/assets/sprites/player/itemText.png', () => {
+      console.log('ItemText image loaded successfully');
+    }, (error) => {
+      console.error('Failed to load itemText image:', error);
     });
 
     // Carrega o sistema de vida
@@ -120,6 +155,12 @@ class Player{
   }
 
   handleInventoryInput() {
+    // Se está mostrando confirmação de item, controla essa interface
+    if (this.showItemConfirmation) {
+      this.handleItemConfirmationInput();
+      return;
+    }
+
     // Toggle inventário com 'E'
     if (this.p5.keyIsDown(69)) { // Tecla 'E'
       if (!this.eKeyPressed) {
@@ -129,6 +170,9 @@ class Player{
         } else {
           this.inventoryVisible = false;
           this.lifeInventoryVisible = false; // Fecha ambos
+        }
+        if (this.leaveInventorySound) {
+          this.leaveInventorySound.play();
         }
         console.log('Inventário normal', this.inventoryVisible ? 'aberto' : 'fechado');
       }
@@ -151,6 +195,10 @@ class Player{
             this.inventoryVisible = true;
             console.log('Mudou para inventário normal');
           }
+          if (this.navInventorySound) {
+          this.navInventorySound.play();
+          }
+
         }
       }
     } else {
@@ -170,6 +218,9 @@ class Player{
             this.selectedLifeSlot = (this.selectedLifeSlot - 1 + 3) % 3;
             console.log('Slot selecionado (vida):', this.selectedLifeSlot);
           }
+          if (this.navInventorySound) {
+          this.navInventorySound.play();
+        }
         }
       } else {
         this.leftKeyPressed = false;
@@ -186,25 +237,116 @@ class Player{
             this.selectedLifeSlot = (this.selectedLifeSlot + 1) % 3;
             console.log('Slot selecionado (vida):', this.selectedLifeSlot);
           }
+          if (this.navInventorySound) {
+          this.navInventorySound.play();
+        }
         }
       } else {
         this.rightKeyPressed = false;
       }
 
-      // Usar item com 'X'
+      // Usar item com 'X' - agora abre confirmação
       if (this.p5.keyIsDown(88)) { // Tecla 'X'
         if (!this.xKeyPressed) {
           this.xKeyPressed = true;
           if (this.inventoryVisible) {
-            this.useItem(this.selectedSlot);
+            this.openItemConfirmation(this.selectedSlot, 'normal');
           } else {
-            this.useLifeItem(this.selectedLifeSlot);
+            this.openItemConfirmation(this.selectedLifeSlot, 'life');
+          }
+
+           if (this.navInventorySound) {
+          this.navInventorySound.play();
           }
         }
       } else {
         this.xKeyPressed = false;
       }
     }
+  }
+
+  handleItemConfirmationInput() {
+    // Navegar para cima/baixo nas opções
+    if (this.p5.keyIsDown(this.p5.UP_ARROW)) {
+      if (!this.upKeyPressed) {
+        this.upKeyPressed = true;
+        this.selectedUseOption = (this.selectedUseOption - 1 + this.useOptions.length) % this.useOptions.length;
+        console.log('Opção selecionada:', this.useOptions[this.selectedUseOption]);
+      }
+    } else {
+      this.upKeyPressed = false;
+    }
+
+    if (this.p5.keyIsDown(this.p5.DOWN_ARROW)) {
+      if (!this.downKeyPressed) {
+        this.downKeyPressed = true;
+        this.selectedUseOption = (this.selectedUseOption + 1) % this.useOptions.length;
+        console.log('Opção selecionada:', this.useOptions[this.selectedUseOption]);
+        if (this.navInventorySound) {
+        this.navInventorySound.play();
+      }
+      }
+      
+    } else {
+      this.downKeyPressed = false;
+    }
+
+    // Confirmar com 'X'
+    if (this.p5.keyIsDown(88)) { // Tecla 'X'
+      if (!this.xKeyPressed) {
+        this.xKeyPressed = true;
+        this.confirmItemUse();
+      }
+    } else {
+      this.xKeyPressed = false;
+    }
+
+    // Cancelar com 'E'
+    if (this.p5.keyIsDown(69)) { // Tecla 'E'
+      if (!this.eKeyPressed) {
+        this.eKeyPressed = true;
+        this.closeItemConfirmation();
+      }
+    } else {
+      this.eKeyPressed = false;
+    }
+  }
+
+  openItemConfirmation(slotIndex, inventoryType) {
+    const targetInventory = inventoryType === 'normal' ? this.inventory : this.lifeInventory;
+    
+    if (targetInventory[slotIndex] !== null) {
+      this.showItemConfirmation = true;
+      this.confirmationSlot = slotIndex;
+      this.confirmationInventoryType = inventoryType;
+      this.selectedUseOption = 0; // Reset para "Usar"
+      console.log(`Abrindo confirmação para item do slot ${slotIndex} (${inventoryType})`);
+    }
+  }
+
+  closeItemConfirmation() {
+    this.showItemConfirmation = false;
+    this.confirmationSlot = -1;
+    this.confirmationInventoryType = null;
+    this.selectedUseOption = 0;
+    console.log('Confirmação de item fechada');
+  }
+
+  confirmItemUse() {
+    if (this.selectedUseOption === 0) { // "Usar"
+      if (this.confirmationInventoryType === 'normal') {
+        this.useItem(this.confirmationSlot);
+      } else {
+        this.useLifeItem(this.confirmationSlot);
+      }
+      if (this.useItemSound) {
+      this.useItemSound.play();
+      }
+    } else { // "Cancelar"
+      console.log('Uso do item cancelado');
+    }
+    
+    this.closeItemConfirmation();
   }
 
   useLifeItem(slotIndex) {
@@ -238,13 +380,34 @@ class Player{
     return false;
   }
 
-  useItem(slotIndex) {
+ useItem(slotIndex) {
     if (this.inventory[slotIndex] !== null) {
-      console.log(`Usando item do slot ${slotIndex}:`, this.inventory[slotIndex]);
-      // Aqui você pode implementar a lógica de usar o item
-      // Por exemplo: this.inventory[slotIndex] = null; // Remove o item após usar
+      const item = this.inventory[slotIndex];
+      console.log(`Usando item do slot ${slotIndex}:`, item);
+      
+      // Lógica específica para cada tipo de item
+      if (item.type === 'key' || item.type === 'book') {
+        console.log(`Chave/Livro usado: ${item.name}`);
+        // Para chaves, normalmente não removemos do inventário
+        // A menos que seja uma chave de uso único
+        if (item.consumable) {
+          this.inventory[slotIndex] = null;
+        }
+        return true;
+      } else if (item.type === 'health_potion') {
+        // Poção de vida no inventário normal
+        this.lifeBarManager.addLife(item.healAmount || 25);
+        console.log(`Vida restaurada! Vida atual: ${this.lifeBarManager.getCurrentLife()}`);
+        this.inventory[slotIndex] = null;
+        return true;
+      }
+      
+      // Adicione mais tipos de itens aqui conforme necessário
+      console.log(`Tipo de item não reconhecido: ${item.type}`);
+      return false;
     } else {
       console.log(`Slot ${slotIndex} está vazio`);
+      return false;
     }
   }
 
@@ -319,8 +482,8 @@ class Player{
     // Controla o inventário primeiro
     this.handleInventoryInput();
 
-    // Input handling apenas se nenhum inventário estiver aberto
-    if (!this.inventoryVisible && !this.lifeInventoryVisible && !this.isMoving) {
+    // Input handling apenas se nenhum inventário estiver aberto E não estiver na confirmação
+    if (!this.inventoryVisible && !this.lifeInventoryVisible && !this.isMoving && !this.showItemConfirmation) {
       if (this.p5.keyIsDown(this.p5.LEFT_ARROW)){
         let newX = Math.max(0, this.targetPosition.x - this.stepSize);
         if (this.collisionMap.canMove(newX, this.targetPosition.y)) {
@@ -388,12 +551,92 @@ class Player{
     // Desenha o itemBox à direita do inventário
     this.drawItemBox();
 
+    // Desenha a confirmação de item se estiver ativa (ADICIONADO ESTA LINHA)
+    if (this.showItemConfirmation) {
+      this.drawItemConfirmation();
+    }
+
     // Opcional: Indicador visual de corrida na tela
     if (this.isRunning && !this.inventoryVisible && !this.lifeInventoryVisible) {
       this.drawRunIndicator();
     }
 
     // Restaura o estado
+    this.p5.pop();
+  }
+
+  drawItemConfirmation() {
+    if (!this.showItemConfirmation || !this.itemTextImage) return;
+
+    // Obtém o item atual
+    const targetInventory = this.confirmationInventoryType === 'normal' ? this.inventory : this.lifeInventory;
+    const currentItem = targetInventory[this.confirmationSlot];
+    
+    if (!currentItem) return;
+
+    // Dimensões e posição da janela de confirmação
+    const confirmationWidth = 300;
+    const confirmationHeight = 200;
+    const confirmationX = (this.p5.width - confirmationWidth) / 2;
+    const confirmationY = (this.p5.height - confirmationHeight) / 2;
+
+    // Desenha a imagem de fundo
+    this.p5.image(this.itemTextImage, confirmationX, confirmationY, confirmationWidth, confirmationHeight);
+
+    // Desenha o nome do item
+    this.p5.push();
+    this.p5.fill(255, 255, 255);
+    this.p5.stroke(0, 0, 0);
+    this.p5.strokeWeight(1);
+    this.p5.textAlign(this.p5.CENTER, this.p5.CENTER);
+    this.p5.textSize(16);
+    this.p5.textStyle(this.p5.BOLD);
+    this.p5.text(currentItem.name, confirmationX + confirmationWidth / 2, confirmationY + 40);
+    this.p5.pop();
+
+    // Desenha a imagem do item se existir
+    if (currentItem.image) {
+      this.p5.push();
+      this.p5.imageMode(this.p5.CENTER);
+      this.p5.image(currentItem.image, confirmationX + confirmationWidth / 2, confirmationY + 80, 50, 50);
+      this.p5.imageMode(this.p5.CORNER);
+      this.p5.pop();
+    }
+
+    // Desenha as opções
+    const optionStartY = confirmationY + 120;
+    const optionSpacing = 25;
+
+    for (let i = 0; i < this.useOptions.length; i++) {
+      this.p5.push();
+      
+      // Destaca a opção selecionada
+      if (i === this.selectedUseOption) {
+        this.p5.fill(255, 255, 0); // Amarelo para selecionado
+        this.p5.stroke(0, 0, 0);
+        this.p5.strokeWeight(2);
+      } else {
+        this.p5.fill(255, 255, 255); // Branco para não selecionado
+        this.p5.stroke(0, 0, 0);
+        this.p5.strokeWeight(1);
+      }
+      
+      this.p5.textAlign(this.p5.CENTER, this.p5.CENTER);
+      this.p5.textSize(14);
+      this.p5.textStyle(this.p5.BOLD);
+      this.p5.text(this.useOptions[i], confirmationX + confirmationWidth / 2, optionStartY + (i * optionSpacing));
+      
+      this.p5.pop();
+    }
+
+    // Instruções
+    this.p5.push();
+    this.p5.fill(200, 200, 200);
+    this.p5.noStroke();
+    this.p5.textAlign(this.p5.CENTER, this.p5.CENTER);
+    this.p5.textSize(10);
+    this.p5.text("↑↓ para navegar, X para confirmar, E para cancelar", 
+                confirmationX + confirmationWidth / 2, confirmationY + confirmationHeight - 15);
     this.p5.pop();
   }
 
@@ -446,17 +689,19 @@ class Player{
       }
     }
 
-    // Desenha contorno no slot selecionado
-    const selectedSlotData = this.inventorySlots[this.selectedSlot];
-    this.p5.stroke(255, 255, 0); // Contorno amarelo
-    this.p5.strokeWeight(3);
-    this.p5.noFill();
-    this.p5.rect(
-      inventoryX + selectedSlotData.x, 
-      inventoryY + selectedSlotData.y, 
-      selectedSlotData.width, 
-      selectedSlotData.height
-    );
+    // Desenha contorno no slot selecionado (apenas se não estiver na confirmação)
+    if (!this.showItemConfirmation) {
+      const selectedSlotData = this.inventorySlots[this.selectedSlot];
+      this.p5.stroke(255, 255, 0); // Contorno amarelo
+      this.p5.strokeWeight(3);
+      this.p5.noFill();
+      this.p5.rect(
+        inventoryX + selectedSlotData.x, 
+        inventoryY + selectedSlotData.y, 
+        selectedSlotData.width, 
+        selectedSlotData.height
+      );
+    }
   }
 
   drawLifeInventory() {
@@ -520,17 +765,19 @@ class Player{
       }
     }
 
-    // Desenha contorno no slot selecionado
-    const selectedSlotData = this.lifeInventorySlots[this.selectedLifeSlot];
-    this.p5.stroke(255, 255, 0); // Contorno amarelo
-    this.p5.strokeWeight(3);
-    this.p5.noFill();
-    this.p5.rect(
-      lifeInventoryX + selectedSlotData.x, 
-      lifeInventoryY + selectedSlotData.y, 
-      selectedSlotData.width, 
-      selectedSlotData.height
-    );
+    // Desenha contorno no slot selecionado (apenas se não estiver na confirmação)
+    if (!this.showItemConfirmation) {
+      const selectedSlotData = this.lifeInventorySlots[this.selectedLifeSlot];
+      this.p5.stroke(255, 255, 0); // Contorno amarelo
+      this.p5.strokeWeight(3);
+      this.p5.noFill();
+      this.p5.rect(
+        lifeInventoryX + selectedSlotData.x, 
+        lifeInventoryY + selectedSlotData.y, 
+        selectedSlotData.width, 
+        selectedSlotData.height
+      );
+    }
   }
 
   drawItemBox() {
