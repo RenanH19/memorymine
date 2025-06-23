@@ -127,18 +127,24 @@ function level3(p5, sharedPlayer) {
     // ADICIONAR ESTA NOVA FUNÇÃO - Criar uma horda de robôs:
   function createRobotHorde(positions) {
     positions.forEach((pos, index) => {
-      // Adiciona uma pequena variação na posição para evitar sobreposição
-      const offsetX = (Math.random() - 0.5) * 40; // ±20px
-      const offsetY = (Math.random() - 0.5) * 40; // ±20px
+      const offsetX = (Math.random() - 0.5) * 40;
+      const offsetY = (Math.random() - 0.5) * 40;
       
       const robot = new Robot(p5, pos.x + offsetX, pos.y + offsetY, levelWidth);
       
+      // FORÇAR carregamento
       robot.loadSprites();
+      
+      // AGUARDAR um pouco e tentar novamente
+      setTimeout(() => {
+        robot.loadSprites();
+        console.log('🤖 Segundo carregamento forçado para robô', index);
+      }, 200);
+      
       robot.setCollisionMap('/assets/sprites/player/secretRoomRoboCollision.png');
-      robot.setSpeed(1.2); // Velocidade dos robôs
-      robot.setFollowRange(300); // Alcance de seguimento
-      robot.setAttackRange(35); // Alcance de ataque
-      // robot.enableDebug(); // Descomente para ver os alcances
+      robot.setSpeed(1.2);
+      robot.setFollowRange(300);
+      robot.setAttackRange(35);
       
       robots.push(robot);
       console.log(`Robô ${robots.length} criado na posição (${pos.x + offsetX}, ${pos.y + offsetY})`);
