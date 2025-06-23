@@ -20,6 +20,11 @@ class Player{
     this.moveSpeed = this.normalMoveSpeed; // Velocidade atual
     this.isRunning = false; // Flag para verificar se está correndo
 
+    // ADICIONAR ESTAS LINHAS - Sistema de texto do livro
+    this.showBookText = false;
+    this.bookTextImage = null;
+    this.bookMessage = 'Fui um dos poucos sobreviventes, depois de tudo isso, o que me resta é enorme mutações, não há nada mais o que fazer aqui dentro, ficarei na floresta destruída nesses meus últimos dias';
+
     this.imageSprites = 36;
     this.spriteLoader = SpriteLoader(this.p5, '/assets/sprites/player/runSprites.png', 768, 192, this.imageSprites);
     this.spriteSelected = 0;
@@ -123,6 +128,20 @@ class Player{
       console.error('Failed to load itemText image:', error);
     });
 
+    this.bookTextImage = this.p5.loadImage('/assets/fonts/bookText.png', () => {
+      console.log('BookText image loaded successfully');
+    }, (error) => {
+      console.error('Failed to load bookText image:', error);
+    });
+
+    this.bookFont = this.p5.loadFont('/assets/fonts/PacificoRegular.ttf', () => {
+      console.log('Book font loaded successfully');
+    }, (error) => {
+      console.error('Failed to load book font:', error);
+    });
+
+    
+
     // Carrega o sistema de vida
     this.lifeBarManager.loadLifeBar();
   }
@@ -156,6 +175,10 @@ class Player{
 
   handleInventoryInput() {
     // Se está mostrando confirmação de item, controla essa interface
+    if (this.showBookText) {
+      this.handleBookTextInput();
+      return;
+    }
     if (this.showItemConfirmation) {
       this.handleItemConfirmationInput();
       return;
@@ -263,6 +286,32 @@ class Player{
         this.xKeyPressed = false;
       }
     }
+  }
+
+  handleBookTextInput() {
+    // Fechar com 'E' ou 'X'
+    if (this.p5.keyIsDown(69) || this.p5.keyIsDown(88)) { // Tecla 'E' ou 'X'
+      if (!this.eKeyPressed && !this.xKeyPressed) {
+        this.eKeyPressed = true;
+        this.xKeyPressed = true;
+        this.closeBookText();
+      }
+    } else {
+      this.eKeyPressed = false;
+      this.xKeyPressed = false;
+    }
+  }
+
+  // ADICIONAR ESTA NOVA FUNÇÃO - Abre o texto do livro:
+  openBookText() {
+    this.showBookText = true;
+    console.log('Texto do livro aberto');
+  }
+
+    // ADICIONAR ESTA NOVA FUNÇÃO - Fecha o texto do livro:
+  closeBookText() {
+    this.showBookText = false;
+    console.log('Texto do livro fechado');
   }
 
   handleItemConfirmationInput() {
@@ -380,7 +429,7 @@ class Player{
     return false;
   }
 
- // Modifique o método useItem para chamar o callback:
+ // Modifique o método useItem para mostrar o texto quando usar o livro:
   useItem(slotIndex) {
     if (this.inventory[slotIndex] !== null) {
       const item = this.inventory[slotIndex];
@@ -389,6 +438,11 @@ class Player{
       // Lógica específica para cada tipo de item
       if (item.type === 'key' || item.type === 'book') {
         console.log(`Chave/Livro usado: ${item.name}`);
+        
+        // Se for um livro, mostra o texto
+        if (item.type === 'book') {
+          this.openBookText();
+        }
         
         // Notifica que uma chave foi usada (pode ser usado pelos levels)
         if (this.onKeyUsed) {
@@ -490,7 +544,7 @@ class Player{
     this.handleInventoryInput();
 
     // Input handling apenas se nenhum inventário estiver aberto E não estiver na confirmação
-    if (!this.inventoryVisible && !this.lifeInventoryVisible && !this.isMoving && !this.showItemConfirmation) {
+    if (!this.inventoryVisible && !this.lifeInventoryVisible && !this.isMoving && !this.showItemConfirmation && !this.showBookText) {
       if (this.p5.keyIsDown(this.p5.LEFT_ARROW)){
         let newX = Math.max(0, this.targetPosition.x - this.stepSize);
         if (this.collisionMap.canMove(newX, this.targetPosition.y)) {
@@ -541,26 +595,30 @@ class Player{
 
   displayInventory() {
     // Só mostra se algum inventário estiver visível
-    if (!this.inventoryVisible && !this.lifeInventoryVisible) return;
-
+    if (!this.inventoryVisible && !this.lifeInventoryVisible && !this.showBookText) return;
     // Salva o estado atual
     this.p5.push();
     
     // Reset da transformação para desenhar na tela
     this.p5.resetMatrix();
 
-    if (this.inventoryVisible && this.inventoryImage) {
-      this.drawNormalInventory();
-    } else if (this.lifeInventoryVisible && this.lifeInventoryImage) {
-      this.drawLifeInventory();
-    }
+    // Se está mostrando o texto do livro, desenha apenas ele
+    if (this.showBookText) {
+      this.drawBookText();
+    } else {
+      if (this.inventoryVisible && this.inventoryImage) {
+        this.drawNormalInventory();
+      } else if (this.lifeInventoryVisible && this.lifeInventoryImage) {
+        this.drawLifeInventory();
+      }
 
-    // Desenha o itemBox à direita do inventário
-    this.drawItemBox();
+      // Desenha o itemBox à direita do inventário
+      this.drawItemBox();
 
-    // Desenha a confirmação de item se estiver ativa (ADICIONADO ESTA LINHA)
-    if (this.showItemConfirmation) {
-      this.drawItemConfirmation();
+      // Desenha a confirmação de item se estiver ativa
+      if (this.showItemConfirmation) {
+        this.drawItemConfirmation();
+      }
     }
 
     // Opcional: Indicador visual de corrida na tela
@@ -569,6 +627,74 @@ class Player{
     }
 
     // Restaura o estado
+    this.p5.pop();
+  }
+
+  // ADICIONAR ESTA NOVA FUNÇÃO - Desenha o texto do livro:
+  drawBookText() {
+    if (!this.showBookText || !this.bookTextImage) return;
+
+    // Dimensões da tela de texto do livro
+    const textWidth = this.p5.width * 0.8; // 80% da largura da tela
+    const textHeight = this.p5.height * 0.6; // 60% da altura da tela
+    const textX = (this.p5.width - textWidth) / 2;
+    const textY = (this.p5.height - textHeight) / 2;
+
+    // Desenha a imagem de fundo
+    this.p5.image(this.bookTextImage, textX, textY, textWidth, textHeight);
+
+    // Desenha o texto
+    this.p5.push();
+    this.p5.fill(0, 0, 0); // Texto escuro
+    if (this.bookFont) {
+      this.p5.textFont(this.bookFont); // Usa a fonte personalizada
+    } else {
+      this.p5.textFont('Courier New'); // Fallback para fonte padrão
+    }
+    this.p5.textAlign(this.p5.CENTER, this.p5.CENTER);
+    this.p5.textSize(28);
+    this.p5.textStyle(this.p5.NORMAL);
+    
+    // Quebra o texto em linhas para caber na tela
+    const maxWidth = textWidth - 120; // Margem de 40px de cada lado
+    const words = this.bookMessage.split(' ');
+    let lines = [];
+    let currentLine = '';
+    
+    for (let word of words) {
+      let testLine = currentLine + (currentLine === '' ? '' : ' ') + word;
+      let testWidth = this.p5.textWidth(testLine);
+      
+      if (testWidth > maxWidth && currentLine !== '') {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
+      }
+    }
+    if (currentLine !== '') {
+      lines.push(currentLine);
+    }
+    
+    // Desenha cada linha
+    const lineHeight = 36;
+    const startY = textY + textHeight / 2 - (lines.length * lineHeight) / 2;
+    
+    for (let i = 0; i < lines.length; i++) {
+      this.p5.text(lines[i], textX + textWidth / 2, startY + i * lineHeight);
+    }
+    
+    this.p5.pop();
+
+    // Instruções para fechar
+    this.p5.push();
+    this.p5.fill(0, 0, 0);
+    
+    // Usa fonte padrão para instruções
+    this.p5.textFont('Arial');
+    this.p5.textAlign(this.p5.CENTER, this.p5.CENTER);
+    this.p5.textSize(18);
+    this.p5.text("Pressione E ou X para fechar", textX + textWidth / 2, textY + textHeight - 50);
     this.p5.pop();
   }
 
@@ -908,14 +1034,10 @@ class Player{
     console.log(`Cura recebida: ${amount}. Vida atual: ${this.lifeBarManager.getCurrentLife()}`);
   }
 
-  setKeyUsedCallback(callback) {
-    this.onKeyUsed = callback;
-  }
-
   // Adicione este método na classe Player se ainda não existir:
   setKeyUsedCallback(callback) {
     this.onKeyUsed = callback;
-}
+  }
 }
 
 export default Player;

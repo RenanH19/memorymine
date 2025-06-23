@@ -207,7 +207,7 @@ function level1(p5, sharedPlayer) {
       
       if (isInSystemArea && systemMessageStep >= 1 && !isSystemActive) {
         // Verifica se o player tem e está usando uma chave
-        const hasKey = player.hasItem('key') || player.hasItem('book') || player.hasItem('Livro Antigo');
+        const hasKey = player.hasItem('key');
         
         if (hasKey) {
           // Ativa o sistema
